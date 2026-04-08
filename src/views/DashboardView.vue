@@ -704,7 +704,7 @@ onMounted(async () => {
   align-items: center;
   gap: 4px;
 }
-.mini-card-img { width: 30px; height: 42px; object-fit: contain; border-radius: 2px; }
+.mini-card-img { width: 30px; height: 42px; object-fit: contain; border-radius: 2px; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .mini-more { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
 .portfolio-empty-items { font-size: 12px; height: 42px; display: flex; align-items: center; }
 

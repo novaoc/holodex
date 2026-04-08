@@ -676,7 +676,7 @@ function deletePortfolio() {
 .search-mini-wrap { width: 180px; }
 
 .item-name-cell { display: flex; align-items: center; gap: 10px; }
-.item-thumb { width: 36px; height: 50px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
+.item-thumb { width: 36px; height: 50px; object-fit: contain; border-radius: 3px; flex-shrink: 0; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .item-thumb-sealed { background: var(--bg-primary); border-radius: 4px; }
 .item-sealed-icon { width: 36px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
 .item-name { font-size: 13px; font-weight: 600; }
@@ -691,7 +691,7 @@ function deletePortfolio() {
 .panel-header-row h3 { font-size: 16px; font-weight: 700; }
 .panel-body-row { display: flex; gap: 24px; margin-bottom: 20px; }
 .panel-left { flex-shrink: 0; }
-.panel-img { width: 120px; border-radius: 8px; }
+.panel-img { width: 120px; border-radius: 8px; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .panel-right { flex: 1; }
 .panel-info-grid { display: flex; flex-direction: column; gap: 6px; }
 .info-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--border-subtle); }

@@ -677,7 +677,7 @@ onMounted(loadSets)
 }
 
 .set-logo-wrap { width: 80px; min-width: 80px; display: flex; align-items: center; justify-content: center; }
-.set-logo { max-width: 80px; max-height: 40px; object-fit: contain; }
+.set-logo { max-width: 80px; max-height: 40px; object-fit: contain; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .set-logo-placeholder { font-size: 28px; color: var(--text-muted); }
 .set-logo-jp { font-size: 18px; font-weight: 700; letter-spacing: 2px; }
 
@@ -690,7 +690,7 @@ onMounted(loadSets)
 .set-owned { color: var(--green, #3fb950); font-weight: 600; }
 
 .set-symbol-wrap { flex-shrink: 0; }
-.set-symbol { width: 24px; height: 24px; object-fit: contain; opacity: 0.7; }
+.set-symbol { width: 24px; height: 24px; object-fit: contain; opacity: 0.7; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 
 /* Set card browser */
 .set-browse-header {
@@ -707,7 +707,7 @@ onMounted(loadSets)
   font-weight: 700;
   flex: 1;
 }
-.browse-symbol { width: 22px; height: 22px; object-fit: contain; }
+.browse-symbol { width: 22px; height: 22px; object-fit: contain; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .set-browse-filters { display: flex; gap: 8px; align-items: center; }
 
 /* Bulk add modal */
@@ -751,7 +751,7 @@ onMounted(loadSets)
 .bulk-card.bulk-checked { border-color: var(--accent); background: rgba(134, 59, 255, 0.06); }
 .bulk-card-check { flex-shrink: 0; }
 .bulk-card-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
-.bulk-card-img { width: 32px; height: 45px; object-fit: contain; border-radius: 4px; flex-shrink: 0; }
+.bulk-card-img { width: 32px; height: 45px; object-fit: contain; border-radius: 4px; flex-shrink: 0; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .bulk-card-info { flex: 1; min-width: 0; }
 .bulk-card-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bulk-card-meta { font-size: 11px; color: var(--text-muted); }
@@ -781,7 +781,7 @@ onMounted(loadSets)
 .card-result:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
 .card-result.selected { border-color: var(--accent); }
 .card-img-wrap { position: relative; overflow: hidden; background: #1a1f28; aspect-ratio: 2.5/3.5; }
-.card-img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform 0.3s; }
+.card-img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform 0.3s; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .card-result:hover .card-img { transform: scale(1.04); }
 .card-overlay {
   position: absolute; inset: 0; background: rgba(0,0,0,0.6);
@@ -837,7 +837,7 @@ onMounted(loadSets)
 .panel-header h3 { font-size: 17px; font-weight: 700; }
 .panel-body { padding: 20px 24px; }
 .panel-top { display: flex; gap: 24px; margin-bottom: 24px; }
-.panel-card-img { width: 140px; min-width: 140px; border-radius: 8px; box-shadow: var(--shadow); }
+.panel-card-img { width: 140px; min-width: 140px; border-radius: 8px; box-shadow: var(--shadow); pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .panel-card-img-placeholder {
   width: 140px; min-width: 140px; height: 195px; border-radius: 8px;
   background: var(--bg-primary); display: flex; flex-direction: column;

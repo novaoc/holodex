@@ -347,7 +347,7 @@ function onAdded() {
 .card-result.selected { border-color: var(--accent); }
 
 .card-img-wrap { position: relative; overflow: hidden; background: #1a1f28; aspect-ratio: 2.5/3.5; }
-.card-img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform 0.3s; }
+.card-img { width: 100%; height: 100%; object-fit: contain; display: block; transition: transform 0.3s; pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .card-result:hover .card-img { transform: scale(1.04); }
 
 .card-overlay {
@@ -418,7 +418,7 @@ function onAdded() {
 
 .panel-body { padding: 20px 24px; }
 .panel-top { display: flex; gap: 24px; margin-bottom: 24px; }
-.panel-card-img { width: 140px; min-width: 140px; border-radius: 8px; box-shadow: var(--shadow); }
+.panel-card-img { width: 140px; min-width: 140px; border-radius: 8px; box-shadow: var(--shadow); pointer-events: none; -webkit-user-drag: none; user-drag: none; }
 .panel-card-info { flex: 1; }
 .panel-card-set { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
 .panel-card-rarity { font-size: 12px; color: var(--accent); }
