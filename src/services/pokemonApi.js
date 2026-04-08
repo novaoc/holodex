@@ -77,6 +77,69 @@ export function getAllVariants(card) {
   }))
 }
 
+// Japanese sets via tcgdex
+export async function getJapaneseSets() {
+  const url = 'https://api.tcgdex.net/v2/ja/sets'
+  const data = await fetchWithCache(url)
+  // tcgdex returns array directly, normalize to match pokemontcg.io shape
+  return data.map(s => ({
+    id: s.id,
+    name: s.name,
+    series: '', // tcgdex doesn't group by series for JP
+    total: s.cardCount?.total || 0,
+    printedTotal: s.cardCount?.official || 0,
+    releaseDate: null,
+    images: { logo: null, symbol: null },
+    _lang: 'ja',
+    _cardCount: s.cardCount
+  }))
+}
+
+export async function getJapaneseCardsBySet(setId, page = 1, pageSize = 36) {
+  // tcgdex returns all cards in set at once, paginate client-side
+  const url = `https://api.tcgdex.net/v2/ja/sets/${setId}`
+  const data = await fetchWithCache(url)
+  const allCards = (data.cards || []).map(c => ({
+    id: c.id,
+    name: c.name,
+    number: c.localId,
+    set: { id: setId, name: data.name },
+    images: { small: null, large: null },
+    supertype: 'Pokémon',
+    _lang: 'ja'
+  }))
+  const start = (page - 1) * pageSize
+  const paged = allCards.slice(start, start + pageSize)
+  return { data: paged, totalCount: allCards.length }
+}
+
+export async function getJapaneseCardDetail(cardId) {
+  const url = `https://api.tcgdex.net/v2/ja/cards/${cardId}`
+  const data = await fetchWithCache(url)
+  return {
+    id: data.id,
+    name: data.name,
+    number: data.localId,
+    set: { id: data.set?.id, name: data.set?.name },
+    images: { small: null, large: null },
+    supertype: data.category || 'Pokémon',
+    subtypes: data.stage ? [data.stage] : [],
+    types: data.types || [],
+    hp: data.hp ? String(data.hp) : null,
+    rarity: data.rarity || null,
+    attacks: (data.attacks || []).map(a => ({
+      name: a.name,
+      cost: a.cost || [],
+      damage: a.damage ? String(a.damage) : '',
+      text: a.effect || ''
+    })),
+    weaknesses: data.weaknesses || [],
+    retreatCost: data.retreat != null ? Array(data.retreat).fill(undefined).map((_, i) => i) : [],
+    tcgplayer: { prices: null },
+    _lang: 'ja'
+  }
+}
+
 export function formatVariantLabel(key) {
   const labels = {
     holofoil: 'Holofoil',

@@ -4,6 +4,10 @@
     <!-- Set list -->
     <div v-if="!selectedSet">
       <div class="sets-header mb-4">
+        <div class="lang-tabs">
+          <button class="lang-tab" :class="{ active: lang === 'en' }" @click="switchLang('en')">English</button>
+          <button class="lang-tab" :class="{ active: lang === 'ja' }" @click="switchLang('ja')">Japanese</button>
+        </div>
         <div class="search-input-wrap">
           <span class="search-icon">⌕</span>
           <input
@@ -45,16 +49,22 @@
                 class="set-logo"
                 loading="lazy"
               />
-              <span v-else class="set-logo-placeholder">⬡</span>
+              <span v-else class="set-logo-placeholder" :class="{ 'set-logo-jp': set._lang === 'ja' }">
+                {{ set._lang === 'ja' ? 'ポケ' : '⬡' }}
+              </span>
             </div>
             <div class="set-info">
               <div class="set-name">{{ set.name }}</div>
               <div class="set-meta">
-                <span class="set-series">{{ set.series }}</span>
-                <span class="set-dot">·</span>
+                <template v-if="set.series">
+                  <span class="set-series">{{ set.series }}</span>
+                  <span class="set-dot">·</span>
+                </template>
                 <span class="set-count">{{ set.total }} cards</span>
-                <span class="set-dot">·</span>
-                <span class="set-date">{{ formatDate(set.releaseDate) }}</span>
+                <template v-if="set.releaseDate">
+                  <span class="set-dot">·</span>
+                  <span class="set-date">{{ formatDate(set.releaseDate) }}</span>
+                </template>
               </div>
             </div>
             <div class="set-symbol-wrap" v-if="set.images?.symbol">
@@ -106,11 +116,16 @@
           >
             <div class="card-img-wrap">
               <img
-                :src="card.images?.small"
+                v-if="card.images?.small"
+                :src="card.images.small"
                 :alt="card.name"
                 loading="lazy"
                 class="card-img"
               />
+              <div v-else class="card-img-placeholder">
+                <span>{{ card.name }}</span>
+                <span class="card-img-num">#{{ card.number }}</span>
+              </div>
               <div class="card-overlay">
                 <button class="btn btn-primary btn-sm" @click.stop="openAddModal(card)">+ Add</button>
                 <button class="btn btn-secondary btn-sm" @click.stop="selectCard(card)">Details</button>
@@ -163,6 +178,24 @@
                 </div>
               </div>
 
+              <!-- Japanese card details -->
+              <div v-if="selectedCard._lang === 'ja'" class="mt-3">
+                <div v-if="selectedCard.attacks?.length" class="mt-3">
+                  <div class="price-list-title">Attacks</div>
+                  <div v-for="atk in selectedCard.attacks" :key="atk.name" class="attack-row">
+                    <div class="attack-header">
+                      <span class="attack-cost">{{ (atk.cost || []).join(' ') }}</span>
+                      <span class="attack-name">{{ atk.name }}</span>
+                      <span class="attack-damage" v-if="atk.damage">{{ atk.damage }}</span>
+                    </div>
+                    <div class="attack-text" v-if="atk.text">{{ atk.text }}</div>
+                  </div>
+                </div>
+                <div v-if="selectedCard.weaknesses?.length" class="mt-2" style="font-size:12px;color:var(--text-muted)">
+                  Weaknesses: {{ selectedCard.weaknesses.map(w => `${w.type} ${w.value}`).join(', ') }}
+                </div>
+              </div>
+
               <div class="panel-actions mt-3">
                 <button class="btn btn-primary w-full" @click="openAddModal(selectedCard)">
                   + Add to Portfolio
@@ -196,7 +229,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { getSets, getCardsBySet, getMarketPrice, formatVariantLabel } from '../services/pokemonApi'
+import { getSets, getCardsBySet, getMarketPrice, formatVariantLabel, getJapaneseSets, getJapaneseCardsBySet, getJapaneseCardDetail } from '../services/pokemonApi'
 import PriceChart from '../components/PriceChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
 
@@ -205,6 +238,8 @@ const sets = ref([])
 const loadingSets = ref(false)
 const setsError = ref(null)
 const setFilter = ref('')
+const lang = ref('en')
+const setsCache = { en: [], ja: [] }
 
 // Selected set / card browse state
 const selectedSet = ref(null)
@@ -240,11 +275,30 @@ async function loadSets() {
   loadingSets.value = true
   setsError.value = null
   try {
-    sets.value = await getSets()
+    if (lang.value === 'ja') {
+      setsCache.ja = await getJapaneseSets()
+      sets.value = setsCache.ja
+    } else {
+      setsCache.en = await getSets()
+      sets.value = setsCache.en
+    }
   } catch (e) {
     setsError.value = e.message || 'Unknown error'
   } finally {
     loadingSets.value = false
+  }
+}
+
+async function switchLang(newLang) {
+  if (lang.value === newLang) return
+  lang.value = newLang
+  setFilter.value = ''
+  selectedSet.value = null
+  selectedCard.value = null
+  if (setsCache[newLang].length) {
+    sets.value = setsCache[newLang]
+  } else {
+    await loadSets()
   }
 }
 
@@ -266,9 +320,15 @@ async function loadSetCards(set, page = cardPage.value) {
   loadingCards.value = true
   cardsError.value = null
   try {
-    const data = await getCardsBySet(set.id, page, cardPageSize)
-    cards.value = data.data || []
-    totalCards.value = data.totalCount || 0
+    if (set._lang === 'ja' || lang.value === 'ja') {
+      const data = await getJapaneseCardsBySet(set.id, page, cardPageSize)
+      cards.value = data.data || []
+      totalCards.value = data.totalCount || 0
+    } else {
+      const data = await getCardsBySet(set.id, page, cardPageSize)
+      cards.value = data.data || []
+      totalCards.value = data.totalCount || 0
+    }
   } catch (e) {
     cardsError.value = e.message || 'Unknown error'
   } finally {
@@ -282,8 +342,22 @@ async function goCardPage(p) {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-function selectCard(card) {
-  selectedCard.value = selectedCard.value?.id === card.id ? null : card
+async function selectCard(card) {
+  if (selectedCard.value?.id === card.id) {
+    selectedCard.value = null
+    return
+  }
+  if (card._lang === 'ja') {
+    // Fetch full detail for Japanese cards
+    try {
+      const detail = await getJapaneseCardDetail(card.id)
+      selectedCard.value = { ...card, ...detail }
+    } catch {
+      selectedCard.value = card
+    }
+  } else {
+    selectedCard.value = card
+  }
 }
 
 function openAddModal(card) {
@@ -320,7 +394,17 @@ onMounted(loadSets)
 <style scoped>
 .sets-view { max-width: 1200px; margin: 0 auto; }
 
-.sets-header { display: flex; align-items: center; gap: 12px; }
+.sets-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+/* Language tabs */
+.lang-tabs { display: flex; gap: 0; background: var(--bg-card); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+.lang-tab {
+  padding: 7px 16px; font-size: 13px; font-weight: 500; cursor: pointer;
+  background: transparent; border: none; color: var(--text-secondary);
+  transition: all 0.15s;
+}
+.lang-tab:hover { color: var(--text-primary); }
+.lang-tab.active { background: var(--accent); color: #0d1117; font-weight: 600; }
 .search-input-wrap { flex: 1; position: relative; display: flex; align-items: center; max-width: 400px; }
 .search-icon { position: absolute; left: 12px; font-size: 16px; color: var(--text-muted); pointer-events: none; }
 .search-input { padding-left: 36px; padding-right: 36px; font-size: 14px; }
@@ -352,6 +436,7 @@ onMounted(loadSets)
 .set-logo-wrap { width: 80px; min-width: 80px; display: flex; align-items: center; justify-content: center; }
 .set-logo { max-width: 80px; max-height: 40px; object-fit: contain; }
 .set-logo-placeholder { font-size: 28px; color: var(--text-muted); }
+.set-logo-jp { font-size: 18px; font-weight: 700; letter-spacing: 2px; }
 
 .set-info { flex: 1; min-width: 0; }
 .set-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -412,6 +497,22 @@ onMounted(loadSets)
   .card-overlay { opacity: 1; background: rgba(0,0,0,0.5); }
   .card-overlay .btn { font-size: 12px; padding: 6px 12px; }
 }
+.card-img-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; padding: 12px; text-align: center;
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  background: var(--bg-primary);
+}
+.card-img-num { font-size: 10px; color: var(--text-muted); }
+
+/* Attack rows */
+.attack-row { padding: 6px 0; border-bottom: 1px solid var(--border-subtle); }
+.attack-header { display: flex; align-items: center; gap: 8px; }
+.attack-cost { font-size: 12px; }
+.attack-name { font-weight: 600; flex: 1; }
+.attack-damage { font-weight: 700; font-variant-numeric: tabular-nums; }
+.attack-text { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 .card-meta { padding: 10px; }
 .card-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-price-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
