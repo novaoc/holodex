@@ -3,39 +3,49 @@
     <div class="meta-header">
       <router-link to="/decks" class="btn btn-ghost btn-sm" style="margin-bottom:8px">← All Decks</router-link>
       <h2>Meta Decks</h2>
-      <p class="text-muted" style="font-size:13px;margin-top:2px">Popular competitive decks. Click "Add to My Decks" to import one and start tracking what you own.</p>
+      <p class="text-muted" style="font-size:13px;margin-top:2px">
+        {{ source === 'live' ? 'Live tournament data from Limitless TCG.' : 'Static fallback decks.' }}
+        Click "Add to My Decks" to import one and start tracking what you own.
+        <span v-if="lastUpdated" class="text-muted"> · Updated {{ timeAgo(lastUpdated) }}</span>
+      </p>
     </div>
 
-    <div class="meta-grid">
-      <div v-for="deck in metaDecks" :key="deck.archetype" class="meta-card">
+    <!-- Loading state -->
+    <div v-if="loading" class="meta-loading">
+      <div class="spinner"></div>
+      <p class="text-muted" style="margin-top:12px">Fetching latest meta decks...</p>
+    </div>
+
+    <div v-else class="meta-grid">
+      <div v-for="deck in metaDecks" :key="deck.name" class="meta-card">
         <div class="meta-card-header">
           <h3>{{ deck.name }}</h3>
-          <span class="badge badge-info">{{ deck.cards.length }} cards</span>
+          <div class="meta-card-badges">
+            <span class="badge badge-info">{{ deck.cards.reduce((s, c) => s + (c.quantity || 1), 0) }} cards</span>
+            <span v-if="deck.meta?.share" class="badge badge-accent">{{ deck.meta.share }}</span>
+          </div>
         </div>
         <p class="meta-card-desc">{{ deck.description }}</p>
-        <div class="meta-card-preview">
-          <span class="badge badge-accent">{{ deck.cards.reduce((s, c) => s + c.quantity, 0) }} cards · {{ deck.cards.length }} unique</span>
-        </div>
         <div class="meta-card-actions">
           <button
             class="btn btn-primary btn-sm"
             @click="importDeck(deck)"
-            :disabled="importing === deck.archetype"
+            :disabled="importing === (deck.archetype || deck.name)"
           >
-            <span v-if="importing === deck.archetype" class="spinner spinner-sm"></span>
+            <span v-if="importing === (deck.archetype || deck.name)" class="spinner spinner-sm"></span>
             <span v-else>+ Add to My Decks</span>
           </button>
-          <button class="btn btn-ghost btn-sm" @click="expanded = expanded === deck.archetype ? null : deck.archetype">
-            {{ expanded === deck.archetype ? 'Hide List' : 'View List' }}
+          <button class="btn btn-ghost btn-sm" @click="expanded = expanded === deck.name ? null : deck.name">
+            {{ expanded === deck.name ? 'Hide List' : 'View List' }}
           </button>
         </div>
 
         <!-- Expanded card list -->
-        <div v-if="expanded === deck.archetype" class="meta-card-list">
-          <div v-for="card in deck.cards" :key="card.name" class="meta-card-row">
+        <div v-if="expanded === deck.name" class="meta-card-list">
+          <div v-for="card in deck.cards" :key="card.name + card.setCode" class="meta-card-row">
             <div class="meta-row-info">
               <div class="meta-row-name">{{ card.name }}</div>
-              <div class="meta-row-set">{{ card.setName }} · {{ card.setCode }}</div>
+              <div class="meta-row-set">{{ card.setName || card.setCode }}</div>
             </div>
             <span class="meta-row-qty">×{{ card.quantity }}</span>
           </div>
@@ -46,21 +56,48 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/decks'
-import { metaDecks } from '../data/metaDecks'
+import { fetchLiveMetaDecks, fallbackMetaDecks } from '../services/metaDecksApi'
+
+function timeAgo(date) {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (seconds < 60) return 'just now'
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`
+  return `${Math.floor(seconds / 86400)}d ago`
+}
 
 const deckStore = useDeckStore()
 const router = useRouter()
 
 const importing = ref(null)
 const expanded = ref(null)
+const metaDecks = ref([])
+const loading = ref(true)
+const source = ref('live') // 'live' or 'fallback'
+const lastUpdated = ref(null)
+
+onMounted(async () => {
+  try {
+    metaDecks.value = await fetchLiveMetaDecks()
+    source.value = 'live'
+    // Read cache timestamp
+    try {
+      const cached = JSON.parse(localStorage.getItem('holodex_meta_decks_cache'))
+      if (cached?.timestamp) lastUpdated.value = new Date(cached.timestamp)
+    } catch {}
+  } catch {
+    // Fall back to hardcoded decks — resolve cards via the deck store
+    metaDecks.value = fallbackMetaDecks
+    source.value = 'fallback'
+  }
+  loading.value = false
+})
 
 async function importDeck(metaDeck) {
-  importing.value = metaDeck.archetype
-  // Small delay for visual feedback
-  await new Promise(r => setTimeout(r, 300))
+  importing.value = metaDeck.archetype || metaDeck.name
   const deck = await deckStore.importMetaDeck(metaDeck)
   importing.value = null
   router.push(`/decks/${deck.id}`)
@@ -96,6 +133,7 @@ async function importDeck(metaDeck) {
   gap: 8px;
 }
 .meta-card-header h3 { font-size: 16px; font-weight: 700; }
+.meta-card-badges { display: flex; gap: 4px; align-items: center; }
 
 .meta-card-desc {
   font-size: 13px;
@@ -132,6 +170,14 @@ async function importDeck(metaDeck) {
 .meta-row-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .meta-row-set { font-size: 10px; color: var(--text-muted); }
 .meta-row-qty { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+
+/* Loading */
+.meta-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 0;
+}
 
 @media (max-width: 640px) {
   .meta-grid { grid-template-columns: 1fr; }

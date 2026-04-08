@@ -197,33 +197,48 @@ export const useDeckStore = defineStore('decks', () => {
 
   async function importMetaDeck(metaDeck) {
     const deck = createDeck(metaDeck.name)
-    const promises = metaDeck.cards.map(async (cardTemplate) => {
+    const promises = metaDeck.cards.map(async (card) => {
+      // Live cards already have cardId, image, price — use directly
+      if (card.cardId) {
+        addCardRaw(deck.id, {
+          cardId: card.cardId,
+          name: card.name,
+          setName: card.setName || '',
+          setCode: card.setCode || '',
+          number: card.number || '',
+          quantity: card.quantity,
+          price: card.price || null,
+          image: card.image || '',
+        })
+        return
+      }
+
+      // Fallback cards: resolve by name+set
       let fullCard = null
       try {
-        fullCard = await findRegularCard(cardTemplate.name, cardTemplate.setCode)
+        fullCard = await findRegularCard(card.name, card.setCode)
       } catch {}
 
       if (fullCard) {
         const result = getMarketPrice(fullCard)
         addCardRaw(deck.id, {
           cardId: fullCard.id,
-          name: cardTemplate.name,
-          setName: fullCard.set?.name || cardTemplate.setName || '',
-          setCode: fullCard.set?.id || cardTemplate.setCode || '',
+          name: card.name,
+          setName: fullCard.set?.name || card.setName || '',
+          setCode: fullCard.set?.id || card.setCode || '',
           number: fullCard.number || '',
-          quantity: cardTemplate.quantity,
+          quantity: card.quantity,
           price: result?.price || result || null,
           image: fullCard.images?.small || '',
         })
       } else {
-        // Fallback: add without API data
         addCardRaw(deck.id, {
-          cardId: `${cardTemplate.setCode}-${cardTemplate.name}`,
-          name: cardTemplate.name,
-          setName: cardTemplate.setName || '',
-          setCode: cardTemplate.setCode || '',
+          cardId: `${card.setCode}-${card.name}`,
+          name: card.name,
+          setName: card.setName || '',
+          setCode: card.setCode || '',
           number: '',
-          quantity: cardTemplate.quantity,
+          quantity: card.quantity,
           price: null,
           image: '',
         })
