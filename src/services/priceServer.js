@@ -128,7 +128,7 @@ export async function fetchPrice(query, grade = 'ungraded') {
     product_name: product.productName || '',
     product_set: product.consoleName || '',
     product_url: product.id ? `${PC_BASE}/game/${product.id}` : '',
-    image: product.imageUri ? `${PC_BASE}${product.imageUri}` : '',
+    image: product.imageUri || '',
     all_grades: {
       ungraded: parsePrice(product.price1),
       grade9:   parsePrice(product.price2),
@@ -176,7 +176,7 @@ export async function searchSealed(query) {
       url: p.id ? `${PC_BASE}/game/${p.id}` : '',
       slug: p.id || '',
       price: parsePrice(p.price1),
-      image: p.imageUri ? `${PC_BASE}${p.imageUri}` : '',
+      image: p.imageUri || '',
     }))
 
   cacheSet(cacheKey, results)
