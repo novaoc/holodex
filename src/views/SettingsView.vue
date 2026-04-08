@@ -37,18 +37,28 @@
     <!-- Price Data Sources -->
     <div class="settings-section card mb-4">
       <h3 class="settings-section-title">Price Data Sources</h3>
-      <p class="settings-desc">Sealed product and graded slab prices are fetched from eBay sold listings via a local price server. No API keys required.</p>
+      <p class="settings-desc">All price data is fetched directly in your browser. No API keys or accounts required.</p>
 
       <div class="settings-item">
         <div>
-          <div class="settings-item-label">Price Server</div>
-          <div class="settings-item-sub">
-            Runs at <code>localhost:7890</code> — start with <code>python3 price-server/main.py</code>
-          </div>
+          <div class="settings-item-label">Card Prices</div>
+          <div class="settings-item-sub">Live market prices from pokemontcg.io</div>
         </div>
-        <span :class="serverOnline ? 'badge badge-success' : 'badge badge-error'">
-          {{ serverOnline === null ? 'Checking…' : serverOnline ? 'Online' : 'Offline' }}
-        </span>
+        <span class="badge badge-success">Active</span>
+      </div>
+      <div class="settings-item">
+        <div>
+          <div class="settings-item-label">Price History</div>
+          <div class="settings-item-sub">TCGPlayer historical data via tcgdex (Nov 2022+)</div>
+        </div>
+        <span class="badge badge-success">Active</span>
+      </div>
+      <div class="settings-item">
+        <div>
+          <div class="settings-item-label">Sealed & Graded Prices</div>
+          <div class="settings-item-sub">PriceCharting — fetched directly from your browser</div>
+        </div>
+        <span class="badge badge-success">Active</span>
       </div>
     </div>
 
@@ -97,7 +107,7 @@
         </div>
         <div class="about-item">
           <div class="about-label">Sealed / Graded</div>
-          <div class="about-val">eBay sold listings</div>
+          <div class="about-val">PriceCharting</div>
         </div>
       </div>
 
@@ -108,7 +118,7 @@
         </div>
         <div class="note">
           <span>📦</span>
-          <p>For sealed products and graded slabs, prices are fetched from <strong>eBay sold listings</strong> via the local price server. Start it with <code>python3 price-server/main.py</code> before fetching prices.</p>
+          <p>Sealed product and graded slab prices are fetched directly from <strong>PriceCharting</strong> — no backend, no API key needed.</p>
         </div>
       </div>
     </div>
@@ -149,17 +159,11 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel, exportAllPortfolios } from '../utils/excel'
-import { checkServerHealth } from '../services/priceServer'
-
 const store = usePortfolioStore()
 const router = useRouter()
 
 const confirmReset = ref(false)
 const resetConfirmText = ref('')
-
-// Price server status
-const serverOnline = ref(null)
-checkServerHealth().then(ok => { serverOnline.value = ok })
 
 const totalItems = computed(() => store.portfolios.reduce((s, p) => s + p.items.length, 0))
 

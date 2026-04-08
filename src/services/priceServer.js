@@ -1,74 +1,182 @@
-// Holodex Price Server — local FastAPI service at localhost:7890
-// Scrapes eBay sold listings for sealed products and graded slabs.
-// No API keys required. Run price-server/main.py to start.
+// Holodex Price Service — PriceCharting JSON API, runs directly in the browser.
+// No backend, no API key. CORS is fully open on PriceCharting's search endpoint.
+//
+// Price fields from the API:
+//   price1 = ungraded / loose (used for raw cards and sealed)
+//   price2 = mid-grade (approx. PSA 8–9 range)
+//   price3 = gem mint / grade 10 (PSA 10, BGS 10, CGC 10, etc.)
 
-const BASE_URL = 'http://localhost:7890'
+const PC_BASE = 'https://www.pricecharting.com'
 
-/**
- * Check if the price server is running.
- * Returns true/false.
- */
-export async function checkServerHealth() {
-  try {
-    const res = await fetch(`${BASE_URL}/health`, { signal: AbortSignal.timeout(2000) })
-    return res.ok
-  } catch {
-    return false
+// In-memory cache — 1 hour TTL, max 200 entries
+const _cache = new Map()
+const CACHE_TTL = 60 * 60 * 1000
+
+function cacheGet(key) {
+  const entry = _cache.get(key)
+  if (entry && Date.now() < entry.expires) return entry.data
+  _cache.delete(key)
+  return null
+}
+
+function cacheSet(key, data) {
+  _cache.set(key, { data, expires: Date.now() + CACHE_TTL })
+  if (_cache.size > 200) {
+    const oldest = _cache.keys().next().value
+    _cache.delete(oldest)
   }
 }
 
 /**
- * Fetch market price from PriceCharting (scraped, no key needed).
- * @param {string} query  - Search query (e.g. "Gengar VMAX Fusion Strike")
- * @param {string} grade  - Grade key: "ungraded", "9", "9.5", "10", "psa10", etc.
- * @returns {{ price, grade, product_name, product_set, all_grades, cached }} or throws
+ * Always online — no server to check.
+ */
+export async function checkServerHealth() {
+  return true
+}
+
+/**
+ * Search PriceCharting JSON API.
+ * Returns array of { productName, consoleName, price1, price2, price3, id, imageUri }
+ */
+async function searchPC(query) {
+  const key = `search:${query.toLowerCase()}`
+  const cached = cacheGet(key)
+  if (cached) return cached
+
+  const url = `${PC_BASE}/search-products?type=prices&q=${encodeURIComponent(query)}`
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    signal: AbortSignal.timeout(15000),
+  })
+  if (!res.ok) throw new Error(`pc_error_${res.status}`)
+
+  const data = await res.json()
+  const products = Array.isArray(data) ? data : (data.products || [])
+  cacheSet(key, products)
+  return products
+}
+
+/**
+ * Parse "$1,234.56" or number → float, or null if zero/missing.
+ */
+function parsePrice(val) {
+  if (typeof val === 'number') return val > 0 ? val : null
+  if (!val) return null
+  const num = parseFloat(String(val).replace(/[$,]/g, '').trim())
+  return num > 0 ? num : null
+}
+
+/**
+ * Pick the right price field based on grade.
+ * Grade 10 (PSA 10, BGS 10, CGC 10, etc.) → price3 (gem mint)
+ * Grade 9–9.5 → price2 (mid-grade)
+ * Ungraded / grade <9 → price1 (loose)
+ */
+function priceForGrade(product, grade) {
+  const g = String(grade || 'ungraded').toLowerCase()
+
+  // Gem mint (grade 10, psa10, bgs10, cgc10, ace10, etc.)
+  if (g === '10' || g.endsWith('10') || g === 'bgs10b') {
+    return parsePrice(product.price3) || parsePrice(product.price2) || parsePrice(product.price1)
+  }
+
+  // Mid-grade (9, 9.5, psa9, etc.)
+  if (g.includes('9')) {
+    return parsePrice(product.price2) || parsePrice(product.price1)
+  }
+
+  // Ungraded or lower grade
+  return parsePrice(product.price1)
+}
+
+/**
+ * Fetch market price from PriceCharting.
+ * @param {string} query  - e.g. "Gengar VMAX Fusion Strike"
+ * @param {string} grade  - "ungraded", "9", "10", "psa10", etc.
  */
 export async function fetchPrice(query, grade = 'ungraded') {
   const q = query.trim()
   if (!q) throw new Error('empty_query')
 
-  let res
+  const cacheKey = `price:${q.toLowerCase()}:${grade}`
+  const cached = cacheGet(cacheKey)
+  if (cached) return { ...cached, cached: true }
+
+  let products
   try {
-    res = await fetch(
-      `${BASE_URL}/price?q=${encodeURIComponent(q)}&grade=${encodeURIComponent(grade)}`,
-      { signal: AbortSignal.timeout(30000) }
-    )
+    products = await searchPC(q)
   } catch (e) {
     if (e.name === 'TimeoutError') throw new Error('timeout')
     throw new Error('server_down')
   }
 
-  if (res.status === 404) throw new Error('no_results')
-  if (!res.ok) throw new Error(`server_error_${res.status}`)
+  // Prefer Pokemon products; fall back to all results
+  let pokemon = products.filter(p =>
+    (p.consoleName || '').toLowerCase().includes('pokemon')
+  )
+  if (!pokemon.length) pokemon = products
+  if (!pokemon.length) throw new Error('no_results')
 
-  return res.json()
+  const product = pokemon[0]
+  const price = priceForGrade(product, grade)
+  if (!price) throw new Error('no_results')
+
+  const result = {
+    query: q,
+    grade,
+    price,
+    product_name: product.productName || '',
+    product_set: product.consoleName || '',
+    product_url: product.id ? `${PC_BASE}/game/${product.id}` : '',
+    all_grades: {
+      ungraded: parsePrice(product.price1),
+      grade9:   parsePrice(product.price2),
+      grade10:  parsePrice(product.price3),
+    },
+    cached: false,
+  }
+
+  cacheSet(cacheKey, result)
+  return result
 }
 
 // Backwards-compat alias
 export const fetchEbayPrice = fetchPrice
 
 /**
- * Search for sealed Pokemon products by set name.
- * @param {string} query - e.g. "Fusion Strike" or "Base Set"
- * @returns {{ results: Array<{name, set, url, slug, price}>, cached }}
+ * Search for sealed Pokemon products.
+ * @param {string} query - e.g. "Fusion Strike booster box"
  */
 export async function searchSealed(query) {
   const q = query.trim()
   if (!q) throw new Error('empty_query')
 
-  let res
+  const cacheKey = `sealed:${q.toLowerCase()}`
+  const cached = cacheGet(cacheKey)
+  if (cached) return { results: cached, cached: true }
+
+  let products
   try {
-    res = await fetch(
-      `${BASE_URL}/sealed?q=${encodeURIComponent(q)}`,
-      { signal: AbortSignal.timeout(30000) }
-    )
+    products = await searchPC(`${q} sealed pokemon`)
   } catch (e) {
     if (e.name === 'TimeoutError') throw new Error('timeout')
     throw new Error('server_down')
   }
 
-  if (res.status === 404) throw new Error('no_results')
-  if (!res.ok) throw new Error(`server_error_${res.status}`)
+  const skip = ['sleeve', 'portfolio', 'binder', 'dice', 'coin']
+  const results = products
+    .filter(p => {
+      const name = (p.productName || '').toLowerCase()
+      return !skip.some(s => name.includes(s))
+    })
+    .map(p => ({
+      name: p.productName || '',
+      set: p.consoleName || '',
+      url: p.id ? `${PC_BASE}/game/${p.id}` : '',
+      slug: p.id || '',
+      price: parsePrice(p.price1),
+    }))
 
-  return res.json()
+  cacheSet(cacheKey, results)
+  return { results, cached: false }
 }

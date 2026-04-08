@@ -345,7 +345,7 @@ const editCurrentValue = ref(null)
 const refreshing = ref(false)
 const refreshStatus = ref('')
 
-// eBay price fetch (via local price server)
+// PriceCharting fetch (direct browser API)
 const pcQuery = ref('')
 const pcSearching = ref(false)
 const pcResult = ref(null)   // { median, mean, min, max, count }
@@ -372,7 +372,7 @@ async function searchPC() {
     const grade = selectedItem.value?.type === 'graded' ? (selectedItem.value.grade || '10') : 'ungraded'
     pcResult.value = await fetchPrice(pcQuery.value, grade)
   } catch (e) {
-    if (e.message === 'server_down') pcError.value = 'Price server offline — run price-server/main.py'
+    if (e.message === 'server_down') pcError.value = 'PriceCharting unavailable — check your connection'
     else if (e.message === 'timeout') pcError.value = 'Request timed out'
     else if (e.message === 'no_results') pcError.value = 'No results found — try a different query'
     else pcError.value = 'Fetch failed'

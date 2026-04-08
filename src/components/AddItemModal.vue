@@ -217,7 +217,7 @@ async function doSealedSearch() {
     sealedResults.value = data.results || []
     if (sealedResults.value.length === 0) sealedError.value = 'No sealed products found'
   } catch (e) {
-    if (e.message === 'server_down') sealedError.value = 'Price server offline — run price-server/main.py'
+    if (e.message === 'server_down') sealedError.value = 'PriceCharting unavailable — check your connection'
     else if (e.message === 'timeout') sealedError.value = 'Request timed out'
     else sealedError.value = 'Search failed'
   } finally {
