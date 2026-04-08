@@ -142,6 +142,9 @@
           </div>
           <button class="btn btn-secondary btn-sm" :disabled="syncLoading" @click="connectDropbox">Connect</button>
         </div>
+        <div v-if="syncResult?.error" class="settings-item" style="border-bottom:none">
+          <div class="import-result error">{{ syncResult.error }}</div>
+        </div>
       </template>
 
       <!-- Connected -->
