@@ -52,7 +52,7 @@
           <span class="stat-val text-danger">${{ priceStats.low?.toFixed(2) ?? '—' }}</span>
         </div>
         <div class="price-stat">
-          <span class="stat-label">{{ activeRange === '1m' ? '1M' : activeRange === '3m' ? '3M' : activeRange === '1y' ? '1Y' : 'All' }} Change</span>
+          <span class="stat-label">{{ rangeLabel }} Change</span>
           <span class="stat-val" :class="priceStats.change >= 0 ? 'text-success' : 'text-danger'">
             {{ priceStats.change >= 0 ? '+' : '' }}{{ priceStats.changePct?.toFixed(1) }}%
           </span>
@@ -81,9 +81,14 @@ const availableVariants = ref([])
 const selectedVariant = ref(null)
 const activeRange = ref('3y')
 
+const rangeLabel = computed(() => {
+  const map = { '7d': '7D', '1m': '1M', '6m': '6M', '1y': '1Y', '3y': '3Y' }
+  return map[activeRange.value] || 'All'
+})
+
 const ranges = [
+  { label: '7D', value: '7d' },
   { label: '1M', value: '1m' },
-  { label: '3M', value: '3m' },
   { label: '6M', value: '6m' },
   { label: '1Y', value: '1y' },
   { label: '3Y', value: '3y' },
@@ -190,9 +195,10 @@ function setRange(range) {
 }
 
 function applyRange(allSeries) {
-  const rangeMap = { '1m': 1/12, '3m': 3/12, '6m': 0.5, '1y': 1, '3y': 3 }
-  const years = rangeMap[activeRange.value] || 3
-  const cutoff = Date.now() - years * 365.25 * 24 * 60 * 60 * 1000
+  const DAY = 24 * 60 * 60 * 1000
+  const rangeMap = { '7d': 7 * DAY, '1m': 30 * DAY, '6m': 182 * DAY, '1y': 365 * DAY, '3y': 1095 * DAY }
+  const ms = rangeMap[activeRange.value] || 1095 * DAY
+  const cutoff = Date.now() - ms
 
   let filtered = allSeries.filter(p => p.x >= cutoff)
 
