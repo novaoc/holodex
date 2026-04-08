@@ -123,8 +123,44 @@ function buildBackupData() {
   return payload
 }
 
+// Strip bulky fields from card data for compact QR transfer.
+// Keeps: name, set, number, prices, type, quantity — everything needed to restore.
+// Drops: images, price history arrays, tcgdex raw data, price cache.
+function compactForTransfer(payload) {
+  const compact = JSON.parse(JSON.stringify(payload))
+  // Drop price cache entirely — re-fetches on load
+  delete compact.data.priceCache
+  // Drop snapshots — not critical for transfer
+  delete compact.data.snapshots
+  // Slim down items inside portfolios
+  const portfolios = compact.data.portfolios?.portfolios
+  if (Array.isArray(portfolios)) {
+    for (const p of portfolios) {
+      if (!Array.isArray(p.items)) continue
+      for (const item of p.items) {
+        // Strip bulky card data fields
+        if (item.cardData) {
+          const cd = item.cardData
+          // Keep essentials only
+          item.cardData = {
+            id: cd.id,
+            name: cd.name,
+            number: cd.number,
+            set: cd.set ? { id: cd.set.id, name: cd.set.name, series: cd.set.series } : undefined,
+            tcgplayer: cd.tcgplayer ? { prices: cd.tcgplayer.prices } : undefined,
+          }
+          // Remove undefined keys
+          Object.keys(item.cardData).forEach(k => item.cardData[k] === undefined && delete item.cardData[k])
+        }
+      }
+    }
+  }
+  return compact
+}
+
 const backupData = computed(() => buildBackupData())
-const encodedData = computed(() => JSON.stringify(backupData.value))
+const compactData = computed(() => compactForTransfer(backupData.value))
+const encodedData = computed(() => JSON.stringify(compactData.value))
 const itemCount = computed(() => {
   const portfolios = backupData.value.data?.portfolios?.portfolios || []
   return portfolios.reduce((s, p) => s + (p.items?.length || 0), 0)
@@ -138,7 +174,7 @@ const dataSize = computed(() => {
 async function generateQR() {
   if (!qrCanvas.value) return
   const data = encodedData.value
-  if (data.length > 2800) {
+  if (data.length > 3500) {
     qrTooLarge.value = true
     return
   }
