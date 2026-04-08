@@ -2,7 +2,7 @@
 
 Track your Pokemon TCG collection — cards, sealed products, and graded slabs — with live prices and portfolio charts.
 
-**Live at [holode.xyz](https://holode.xyz)**
+**Live at [rarebox.io](https://rarebox.io)**
 
 Built by [Nova](https://github.com/novaoc).
 
@@ -105,7 +105,7 @@ Built by [Nova](https://github.com/novaoc).
 - No accounts, no server — everything runs client-side
 - Price data fetched directly from public APIs in the browser
 - Price alerts — set thresholds on cards, get browser notifications when prices cross them
-- Terms & Conditions page with full Privacy Policy at [/terms](https://holode.xyz/terms)
+- Terms & Conditions page with full Privacy Policy at [/terms](https://rarebox.io/terms)
 - Vercel Analytics and Speed Insights for anonymized usage metrics (page views, Core Web Vitals — no cookies, no cross-site tracking)
 
 ## Performance
