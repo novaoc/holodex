@@ -10,7 +10,7 @@ Built by [Nova](https://github.com/novaoc).
 
 ### Collection Management
 - Add cards by searching any set — live results with card images and TCGPlayer prices
-- Add sealed products (booster boxes, ETBs, tins) — prices fetched from PriceCharting
+- Add sealed products (booster boxes, ETBs, tins) — prices and images fetched from PriceCharting
 - Add graded slabs (PSA / BGS / CGC / ACE) — grade-specific pricing from PriceCharting
 - Bulk import — paste a PTCGL/PTCGO deck list and add all cards at once
 - Multiple named portfolios, each with a color and their own value chart
