@@ -303,6 +303,7 @@ function submit() {
     item = {
       ...item,
       cardId: props.card.id,
+      _lang: props.card._lang || null,
       cardData: {
         name: props.card.name,
         number: props.card.number,
@@ -319,6 +320,7 @@ function submit() {
     item = {
       ...item,
       cardId: props.card.id,
+      _lang: props.card._lang || null,
       cardData: {
         name: props.card.name,
         number: props.card.number,

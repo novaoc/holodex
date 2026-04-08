@@ -378,17 +378,32 @@ onMounted(async () => {
   const allCardItems = store.portfolios.flatMap(p =>
     p.items.filter(i => i.type === 'card' && i.cardId).map(i => ({ ...i, portfolioId: p.id }))
   )
-  // Batched — max 3 concurrent to be polite to pokemontcg.io
-  for (let i = 0; i < allCardItems.length; i += 3) {
-    const batch = allCardItems.slice(i, i + 3)
-    await Promise.allSettled(batch.map(async item => {
-      // Skip JP cards — they need individual tcgdex calls, don't auto-refresh
-      if (item.cardData?._lang === 'ja' || item._lang === 'ja') return
-      const card = await getCard(item.cardId)
+
+  // Split into EN and JP cards
+  const enCards = allCardItems.filter(i => !store.isJPCard(i))
+  const jpCards = allCardItems.filter(i => store.isJPCard(i))
+
+  // EN cards — refresh all (pokemontcg.io is fast and bulk-friendly)
+  for (const item of enCards) {
+    try {
+      const card = await getCard(item.cardId, item._lang)
       const result = getMarketPrice(card, item.priceVariant)
       const price = result?.price || result
-      if (price) store.updateItem(item.portfolioId, item.id, { currentMarketPrice: price })
-    }))
+      if (price) store.updateItem(item.portfolioId, item.id, { currentMarketPrice: price, lastPriceUpdate: new Date().toISOString() })
+    } catch {}
+    await new Promise(r => setTimeout(r, 100))
+  }
+
+  // JP cards — only refresh stale ones (tcgdex needs one request per card)
+  for (const item of jpCards) {
+    if (!store.isPriceStale(item)) continue
+    try {
+      const card = await getCard(item.cardId, item._lang)
+      const result = getMarketPrice(card, item.priceVariant)
+      const price = result?.price || result
+      if (price) store.updateItem(item.portfolioId, item.id, { currentMarketPrice: price, lastPriceUpdate: new Date().toISOString() })
+    } catch {}
+    await new Promise(r => setTimeout(r, 500)) // 500ms between tcgdex requests
   }
 })
 </script>

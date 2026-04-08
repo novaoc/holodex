@@ -553,32 +553,35 @@ async function refreshPrices() {
   const ebayItems = portfolio.value.items.filter(i => i.type === 'graded' || i.type === 'sealed')
   let updated = 0
 
-  // Batched parallel execution — max 5 concurrent to avoid hammering APIs
-  async function batchMap(items, fn, concurrency = 5) {
-    const results = []
-    for (let i = 0; i < items.length; i += concurrency) {
-      const batch = items.slice(i, i + concurrency)
-      const batchResults = await Promise.allSettled(batch.map(fn))
-      results.push(...batchResults)
-    }
-    return results
-  }
-
-  await Promise.all([
-    // Raw cards — pokemontcg.io (batched, EN only — JP cards use stored prices)
-    batchMap(cardItems, async item => {
-      // Skip JP cards — they need individual tcgdex calls, don't auto-refresh
-      if (item.cardData?._lang === 'ja' || item._lang === 'ja') return
-      const card = await getCard(item.cardId)
-      const priceResult = getMarketPrice(card, item.priceVariant)
-      const price = priceResult?.price || priceResult
-      if (price) {
-        store.updateItem(portfolio.value.id, item.id, { currentMarketPrice: price })
-        updated++
+  await Promise.allSettled([
+    // Raw EN cards — pokemontcg.io (bulk-friendly)
+    ...cardItems.filter(i => !store.isJPCard(i)).map(async item => {
+      try {
+        const card = await getCard(item.cardId, item._lang)
+        const priceResult = getMarketPrice(card, item.priceVariant)
+        const price = priceResult?.price || priceResult
+        if (price) {
+          store.updateItem(portfolio.value.id, item.id, { currentMarketPrice: price, lastPriceUpdate: new Date().toISOString() })
+          updated++
+        }
       }
+      catch {}
     }),
-    // Graded slabs + sealed — PriceCharting (batched)
-    batchMap(ebayItems, async item => {
+    // JP cards — tcgdex (one request per card, stagger)
+    ...cardItems.filter(i => store.isJPCard(i)).map(async (item, idx) => {
+      await new Promise(r => setTimeout(r, idx * 500)) // stagger 500ms apart
+      try {
+        const card = await getCard(item.cardId, item._lang)
+        const priceResult = getMarketPrice(card, item.priceVariant)
+        const price = priceResult?.price || priceResult
+        if (price) {
+          store.updateItem(portfolio.value.id, item.id, { currentMarketPrice: price, lastPriceUpdate: new Date().toISOString() })
+          updated++
+        }
+      } catch {}
+    }),
+    // Graded slabs + sealed — PriceCharting (direct browser API)
+    ...ebayItems.map(async item => {
       const query = pcQueryForItem(item)
       const grade = pcGradeForItem(item)
       if (!query) return

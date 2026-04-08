@@ -141,7 +141,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   function addItem(portfolioId, item) {
     const portfolio = portfolios.value.find(p => p.id === portfolioId)
     if (!portfolio) return null
-    const newItem = { ...item, id: generateId(), addedAt: new Date().toISOString() }
+    const newItem = { ...item, id: generateId(), addedAt: new Date().toISOString(), lastPriceUpdate: new Date().toISOString() }
     portfolio.items.push(newItem)
     persist()
     return newItem
@@ -167,6 +167,20 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   // Update market prices for all card items (call on load / refresh)
   function updateCardPrice(portfolioId, itemId, price) {
     updateItem(portfolioId, itemId, { currentMarketPrice: price })
+  }
+
+  // Check if a card is Japanese (uses tcgdex API, no bulk endpoint)
+  function isJPCard(item) {
+    if (item.type !== 'card') return false
+    const setName = item.cardData?.set?.name || ''
+    return setName.startsWith('jp/') || item.cardId?.startsWith('jp/') || item.jp === true
+  }
+
+  // Check if a card's price is stale (older than 6 hours)
+  function isPriceStale(item) {
+    if (!item.lastPriceUpdate) return true
+    const age = Date.now() - new Date(item.lastPriceUpdate).getTime()
+    return age > 6 * 60 * 60 * 1000 // 6 hours
   }
 
   // Portfolio stats
@@ -336,6 +350,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     getPortfolioStats,
     recordSnapshot,
     getItemHistory,
+    isJPCard,
+    isPriceStale,
     resetAll,
     cleanupSnapshots,
     autoSnapshot,

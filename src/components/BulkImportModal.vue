@@ -312,6 +312,7 @@ function doImport() {
     store.addItem(props.portfolioId, {
       type: 'card',
       cardId: r.card.id,
+      _lang: r.card._lang || null,
       cardData: r.card,
       quantity: r.qty,
       purchasePrice,

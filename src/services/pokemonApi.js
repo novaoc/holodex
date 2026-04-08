@@ -58,7 +58,11 @@ export async function searchCards(query, page = 1, pageSize = 20) {
   return data
 }
 
-export async function getCard(id) {
+export async function getCard(id, lang = null) {
+  // If explicitly marked as Japanese, use tcgdex
+  if (lang === 'ja') {
+    return getJapaneseCardDetail(id)
+  }
   const url = `${BASE_URL}/cards/${id}`
   const data = await fetchWithCache(url)
   return data.data
