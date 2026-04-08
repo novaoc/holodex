@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { usePortfolioStore } from './portfolio'
-import { getMarketPrice, getCard } from '../services/pokemonApi'
+import { getMarketPrice, getCard, searchCards } from '../services/pokemonApi'
 
 const STORAGE_KEY = 'holodex_decks'
 
@@ -164,19 +164,72 @@ export const useDeckStore = defineStore('decks', () => {
 
   // ── Import from meta deck data ────────────────────────────────────────
 
+  // Find the regular (cheapest) printing of a card in a set
+  async function findRegularCard(name, setCode) {
+    const result = await searchCards(`${name}`, 1, 50)
+    if (!result?.data?.length) return null
+
+    // Filter to cards in the right set
+    const inSet = result.data.filter(c => c.set?.id === setCode)
+    const candidates = inSet.length > 0 ? inSet : result.data
+
+    // Sort: prefer lower card numbers (regular prints before alt arts)
+    // and prefer commoner rarities
+    const rarityOrder = {
+      'Common': 0, 'Uncommon': 1, 'Rare': 2, 'Rare Holo': 3,
+      'Double Rare': 4, 'Ultra Rare': 5, 'Illustration Rare': 6,
+      'Special Illustration Rare': 7, 'Hyper Rare': 8, 'Secret Rare': 9,
+    }
+
+    candidates.sort((a, b) => {
+      const numA = parseInt(a.number) || 999
+      const numB = parseInt(b.number) || 999
+      // If both numbers are low (< 200), sort by rarity
+      if (numA < 200 && numB < 200) {
+        return (rarityOrder[a.rarity] ?? 5) - (rarityOrder[b.rarity] ?? 5)
+      }
+      // Otherwise prefer lower number
+      return numA - numB
+    })
+
+    return candidates[0]
+  }
+
   async function importMetaDeck(metaDeck) {
     const deck = createDeck(metaDeck.name)
-    // Fetch prices from API for each card
-    const pricePromises = metaDeck.cards.map(async (card) => {
-      let price = null
+    const promises = metaDeck.cards.map(async (cardTemplate) => {
+      let fullCard = null
       try {
-        const fullCard = await getCard(card.cardId)
-        const result = getMarketPrice(fullCard)
-        price = result?.price || result || null
+        fullCard = await findRegularCard(cardTemplate.name, cardTemplate.setCode)
       } catch {}
-      addCardRaw(deck.id, { ...card, price })
+
+      if (fullCard) {
+        const result = getMarketPrice(fullCard)
+        addCardRaw(deck.id, {
+          cardId: fullCard.id,
+          name: cardTemplate.name,
+          setName: fullCard.set?.name || cardTemplate.setName || '',
+          setCode: fullCard.set?.id || cardTemplate.setCode || '',
+          number: fullCard.number || '',
+          quantity: cardTemplate.quantity,
+          price: result?.price || result || null,
+          image: fullCard.images?.small || '',
+        })
+      } else {
+        // Fallback: add without API data
+        addCardRaw(deck.id, {
+          cardId: `${cardTemplate.setCode}-${cardTemplate.name}`,
+          name: cardTemplate.name,
+          setName: cardTemplate.setName || '',
+          setCode: cardTemplate.setCode || '',
+          number: '',
+          quantity: cardTemplate.quantity,
+          price: null,
+          image: '',
+        })
+      }
     })
-    await Promise.allSettled(pricePromises)
+    await Promise.allSettled(promises)
     return deck
   }
 

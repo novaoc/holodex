@@ -14,14 +14,7 @@
         </div>
         <p class="meta-card-desc">{{ deck.description }}</p>
         <div class="meta-card-preview">
-          <img
-            v-for="card in deck.cards.filter(c => c.image).slice(0, 5)"
-            :key="card.cardId"
-            :src="card.image"
-            class="meta-preview-img"
-            loading="lazy"
-          />
-          <span v-if="deck.cards.length > 5" class="meta-preview-more">+{{ deck.cards.length - 5 }}</span>
+          <span class="badge badge-accent">{{ deck.cards.reduce((s, c) => s + c.quantity, 0) }} cards · {{ deck.cards.length }} unique</span>
         </div>
         <div class="meta-card-actions">
           <button
@@ -39,11 +32,10 @@
 
         <!-- Expanded card list -->
         <div v-if="expanded === deck.archetype" class="meta-card-list">
-          <div v-for="card in deck.cards" :key="card.cardId" class="meta-card-row">
-            <img :src="card.image" class="meta-row-img" loading="lazy" />
+          <div v-for="card in deck.cards" :key="card.name" class="meta-card-row">
             <div class="meta-row-info">
               <div class="meta-row-name">{{ card.name }}</div>
-              <div class="meta-row-set">{{ card.setName }} · #{{ card.number }}</div>
+              <div class="meta-row-set">{{ card.setName }} · {{ card.setCode }}</div>
             </div>
             <span class="meta-row-qty">×{{ card.quantity }}</span>
           </div>
