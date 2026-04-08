@@ -8,7 +8,7 @@
         <div class="hero-content">
           <div class="hero-icon">⬡</div>
           <h1 class="hero-title">Holodex</h1>
-          <p class="hero-sub">Track your Pokémon TCG collection with live prices, portfolio charts, and cross-device sync. Free. Private. Runs in your browser.</p>
+          <p class="hero-sub">Track your Pokémon TCG collection with live prices, portfolio charts, and deck building tools. Compare meta decks against your collection. Free. Private. Runs in your browser.</p>
           <div class="hero-actions">
             <router-link to="/search" class="btn btn-primary btn-lg hero-cta">Get Started</router-link>
             <button class="btn btn-secondary btn-lg" @click="scrollToFeatures">See Features</button>
@@ -95,29 +95,29 @@
             <span class="feature-icon">⚔️</span>
             <div>
               <h2>Deck Building</h2>
-              <p class="feature-sub">Build decks, track what you own, and see what you still need.</p>
+              <p class="feature-sub">Build competitive decks, see what you own, and track the cost to finish each one.</p>
             </div>
           </div>
           <div class="feature-grid">
             <div class="feature-card">
               <div class="feature-card-icon">🆕</div>
               <h3>Build Custom Decks</h3>
-              <p>Search any card and add it to a deck. Manage multiple decks side by side with total cost tracking per deck.</p>
+              <p>Search any card and add it to a deck. Create as many decks as you want. Rename, reorder, and manage them like a collection of builds.</p>
             </div>
             <div class="feature-card">
-              <div class="feature-card-icon">📊</div>
+              <div class="feature-card-icon">🃏</div>
+              <h3>Meta Decks</h3>
+              <p>Import popular Standard decks with one click — Charizard ex, Gardevoir, Lost Zone, Chien-Pao, and more. Each card's market price is fetched automatically on import.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">✅</div>
               <h3>Collection Sync</h3>
-              <p>See which cards you already own across your portfolios. Green badges show owned copies — red shows what you still need.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-card-icon">🏆</div>
-              <h3>Meta Deck Import</h3>
-              <p>Popular competitive decks available as one-click imports. Add Charizard ex, Gardevoir, Lugia VSTAR, and more instantly.</p>
+              <p>Every deck checks against your portfolios automatically. Green badges = you own it, red = you need it. See exactly which cards to buy at a glance.</p>
             </div>
             <div class="feature-card">
               <div class="feature-card-icon">💰</div>
               <h3>Cost Tracking</h3>
-              <p>See the total cost to finish each deck based on current market prices. Know exactly what you're spending before you buy.</p>
+              <p>Each deck shows the total cost to finish it based on current market prices — only counting the cards you're missing. Know the real price before you buy.</p>
             </div>
           </div>
         </div>
