@@ -116,6 +116,9 @@ Built by [Nova](https://github.com/novaoc).
 - In-memory API cache with 1h TTL for card/detail fetches
 - Chart rebuilds debounced (300ms), 404s cached as misses
 - Daily price snapshots use cached prices only — zero API calls
+- API calls batched — max 3-5 concurrent requests (no burst scraping)
+- Retry with backoff on transient errors (429, 5xx, timeout) — 2 retries, 1s/2s delays
+- 15s timeout on all external fetches (no hanging requests)
 
 ## Stack
 
