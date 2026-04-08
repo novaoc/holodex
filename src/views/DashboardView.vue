@@ -159,7 +159,7 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard { max-width: 1200px; margin: 0 auto; }
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 
 .portfolios-grid {
   display: grid;

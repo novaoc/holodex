@@ -34,6 +34,46 @@
       </div>
     </div>
 
+    <!-- Price Data Sources -->
+    <div class="settings-section card mb-4">
+      <h3 class="settings-section-title">Price Data Sources</h3>
+      <p class="settings-desc">Configure API keys for additional price sources. Keys are stored locally on your device only.</p>
+
+      <div class="settings-item settings-item-col">
+        <div class="settings-item-header">
+          <div>
+            <div class="settings-item-label">PriceCharting API Key</div>
+            <div class="settings-item-sub">
+              Free key at
+              <a href="https://www.pricecharting.com/api" target="_blank" rel="noopener">pricecharting.com/api</a>
+              — enables live price lookup for sealed products and graded slabs
+            </div>
+          </div>
+          <span v-if="currentPCKey" class="badge badge-success" style="flex-shrink:0">Active</span>
+        </div>
+        <div class="pc-key-input-row">
+          <input
+            v-model="pcKeyInput"
+            class="input"
+            :type="showPCKey ? 'text' : 'password'"
+            placeholder="Paste your API key here…"
+            @keyup.enter="savePCKey"
+          />
+          <button class="btn btn-ghost btn-sm" @click="showPCKey = !showPCKey" style="flex-shrink:0">{{ showPCKey ? 'Hide' : 'Show' }}</button>
+          <button class="btn btn-primary btn-sm" @click="savePCKey" :disabled="!pcKeyInput.trim()" style="flex-shrink:0">Save</button>
+        </div>
+        <div v-if="pcKeySaved" class="text-success" style="font-size:12px;margin-top:4px">✓ API key saved</div>
+      </div>
+
+      <div v-if="currentPCKey" class="settings-item">
+        <div>
+          <div class="settings-item-label">PriceCharting Cache</div>
+          <div class="settings-item-sub">{{ pcCacheCount }} cached lookups</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" @click="removePCKey">Remove Key</button>
+      </div>
+    </div>
+
     <!-- Export -->
     <div class="settings-section card mb-4">
       <h3 class="settings-section-title">Export</h3>
@@ -67,19 +107,19 @@
       <div class="about-grid">
         <div class="about-item">
           <div class="about-label">Version</div>
-          <div class="about-val">1.0.0</div>
+          <div class="about-val">1.1.0</div>
         </div>
         <div class="about-item">
-          <div class="about-label">Price Data</div>
-          <div class="about-val">pokemontcg.io + tcgdex</div>
+          <div class="about-label">Card Prices</div>
+          <div class="about-val">pokemontcg.io</div>
         </div>
         <div class="about-item">
           <div class="about-label">Price History</div>
-          <div class="about-val">Up to 3 years (Nov 2022+)</div>
+          <div class="about-val">tcgdex (Nov 2022+)</div>
         </div>
         <div class="about-item">
           <div class="about-label">Sealed / Graded</div>
-          <div class="about-val">Manual tracking (1.0)</div>
+          <div class="about-val">PriceCharting (with key)</div>
         </div>
       </div>
 
@@ -90,7 +130,7 @@
         </div>
         <div class="note">
           <span>📦</span>
-          <p>Sealed products and graded slabs don't have a free price history API. Track them manually by updating current values in your portfolio. A future update will add PriceCharting integration.</p>
+          <p>For sealed products and graded slabs, add a free <strong>PriceCharting API key</strong> above. You can search and apply market prices directly from your portfolio view.</p>
         </div>
       </div>
     </div>
@@ -131,6 +171,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel, exportAllPortfolios } from '../utils/excel'
+import { getPCApiKey, savePCApiKey, clearPCCache } from '../services/priceCharting'
 
 const store = usePortfolioStore()
 const router = useRouter()
@@ -138,10 +179,20 @@ const router = useRouter()
 const confirmReset = ref(false)
 const resetConfirmText = ref('')
 
+// PriceCharting key state
+const currentPCKey = ref(getPCApiKey())
+const pcKeyInput = ref('')
+const showPCKey = ref(false)
+const pcKeySaved = ref(false)
+
 const totalItems = computed(() => store.portfolios.reduce((s, p) => s + p.items.length, 0))
 
 const cacheCount = computed(() => {
   return Object.keys(localStorage).filter(k => k.startsWith('ph_cache_')).length
+})
+
+const pcCacheCount = computed(() => {
+  return Object.keys(localStorage).filter(k => k.startsWith('pc_cache_')).length
 })
 
 const storageUsed = computed(() => {
@@ -157,6 +208,21 @@ const storageUsed = computed(() => {
 function clearPriceCache() {
   const keys = Object.keys(localStorage).filter(k => k.startsWith('ph_cache_'))
   keys.forEach(k => localStorage.removeItem(k))
+}
+
+function savePCKey() {
+  if (!pcKeyInput.value.trim()) return
+  savePCApiKey(pcKeyInput.value)
+  currentPCKey.value = getPCApiKey()
+  pcKeySaved.value = true
+  setTimeout(() => { pcKeySaved.value = false }, 3000)
+}
+
+function removePCKey() {
+  savePCApiKey('')
+  clearPCCache()
+  currentPCKey.value = ''
+  pcKeyInput.value = ''
 }
 
 function doReset() {
@@ -194,7 +260,24 @@ function exportAll() {
 .settings-item-label { font-size: 14px; font-weight: 500; }
 .settings-item-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 .settings-item-value { font-size: 13px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.danger-zone { }
+
+/* PC key row — column layout */
+.settings-item-col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+.settings-item-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.pc-key-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
 .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .about-item { background: var(--bg-hover); padding: 12px; border-radius: var(--radius); }
@@ -224,4 +307,10 @@ function exportAll() {
 }
 
 .portfolio-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+@media (max-width: 640px) {
+  .about-grid { grid-template-columns: 1fr; }
+  .pc-key-input-row { flex-wrap: wrap; }
+  .pc-key-input-row .input { min-width: 0; }
+}
 </style>

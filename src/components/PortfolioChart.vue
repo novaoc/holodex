@@ -138,55 +138,72 @@ async function buildPortfolioHistory() {
     return
   }
 
-  // Fetch price histories for all card items
-  const cardItems = allItems.filter(i => i.type === 'card')
+  const cardItems = allItems.filter(i => i.type === 'card' && i.cardId)
   const historyMap = {}
 
   await Promise.allSettled(
     cardItems.map(async item => {
-      const hist = await fetchPriceHistory(item.cardId)
-      if (hist) historyMap[item.cardId] = hist
+      try {
+        const hist = await fetchPriceHistory(item.cardId)
+        if (hist) historyMap[item.cardId] = hist
+      } catch {}
     })
   )
 
-  // Build date-keyed value map
-  // Collect all dates from all histories
-  const dateValueMap = new Map()
-
-  for (const item of allItems) {
-    const qty = item.quantity || 1
-
-    if (item.type === 'card' && historyMap[item.cardId]) {
-      const hist = historyMap[item.cardId]
-      const result = buildChartSeries(hist, item.currentMarketPrice || item.purchasePrice)
+  // Build per-item sorted series (keyed by item.id to handle duplicate cardIds with diff quantities)
+  const itemSeriesMap = {}
+  for (const item of cardItems) {
+    if (historyMap[item.cardId]) {
+      const result = buildChartSeries(historyMap[item.cardId], item.currentMarketPrice || item.purchasePrice)
       const series = Array.isArray(result) ? result : (result?.series || [])
-
-      for (const point of series) {
-        const existing = dateValueMap.get(point.x) || 0
-        dateValueMap.set(point.x, existing + point.y * qty)
+      if (series.length > 0) {
+        itemSeriesMap[item.id] = series.slice().sort((a, b) => a.x - b.x)
       }
-    } else {
-      // Sealed / graded — use current value as flat contribution (no history)
-      // Add single point at today's date
-      const val = item.type === 'card'
-        ? (item.currentMarketPrice || item.purchasePrice || 0)
-        : (item.currentValue || item.purchasePrice || 0)
-      const now = Date.now()
-      const existing = dateValueMap.get(now) || 0
-      dateValueMap.set(now, existing + val * qty)
     }
   }
 
-  if (dateValueMap.size === 0) {
+  // Collect all unique timestamps across all card histories
+  const allTimestamps = new Set()
+  for (const series of Object.values(itemSeriesMap)) {
+    for (const pt of series) allTimestamps.add(pt.x)
+  }
+  allTimestamps.add(Date.now()) // always include today
+
+  if (allTimestamps.size === 0) {
     noData.value = true
     loading.value = false
     return
   }
 
-  // Sort and filter by range
-  let points = Array.from(dateValueMap.entries())
-    .sort((a, b) => a[0] - b[0])
-    .map(([x, y]) => ({ x, y: Math.round(y * 100) / 100 }))
+  const sortedTs = [...allTimestamps].sort((a, b) => a - b)
+
+  // LOCF: for every timestamp, each item contributes its most recent known price
+  const points = sortedTs.map(ts => {
+    let total = 0
+
+    for (const item of allItems) {
+      const qty = item.quantity || 1
+
+      if (item.type === 'card' && itemSeriesMap[item.id]) {
+        // Walk the sorted series and take the last price at or before ts
+        const series = itemSeriesMap[item.id]
+        let price = item.purchasePrice || 0 // fallback before first data point
+        for (const pt of series) {
+          if (pt.x <= ts) price = pt.y
+          else break
+        }
+        total += price * qty
+      } else {
+        // Sealed / graded — no price history, contribute current value flat
+        const val = item.type === 'card'
+          ? (item.currentMarketPrice || item.purchasePrice || 0)
+          : (item.currentValue || item.purchasePrice || 0)
+        total += val * qty
+      }
+    }
+
+    return { x: ts, y: Math.round(total * 100) / 100 }
+  })
 
   applyRange(points)
   loading.value = false

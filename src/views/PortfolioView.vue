@@ -98,6 +98,7 @@
       </div>
 
       <div v-else>
+        <div class="table-wrap">
         <table class="table">
           <thead>
             <tr>
@@ -152,6 +153,7 @@
             </tr>
           </tbody>
         </table>
+        </div><!-- end table-wrap -->
       </div>
     </div>
 
@@ -184,6 +186,34 @@
                   <input v-model.number="editCurrentValue" class="input input-sm" type="number" step="0.01" :placeholder="getCurrentValue(selectedItem).toFixed(2)" />
                   <button class="btn btn-primary btn-sm" @click="saveCurrentValue">Save</button>
                 </div>
+              </div>
+
+              <!-- PriceCharting fetch -->
+              <div v-if="hasPCKey" class="pc-fetch-section mt-3">
+                <div class="pc-fetch-label">Fetch from PriceCharting</div>
+                <div class="flex gap-2">
+                  <input v-model="pcQuery" class="input input-sm" :placeholder="pcQueryPlaceholder" @keyup.enter="searchPC" />
+                  <button class="btn btn-secondary btn-sm" :disabled="pcSearching" @click="searchPC" style="flex-shrink:0">
+                    <span v-if="pcSearching" class="spinner spinner-sm"></span>
+                    <span v-else>Search</span>
+                  </button>
+                </div>
+                <div v-if="pcError" class="text-danger mt-2" style="font-size:12px">{{ pcError }}</div>
+                <div v-if="pcResults.length > 0" class="pc-results mt-2">
+                  <div
+                    v-for="r in pcResults"
+                    :key="r.id"
+                    class="pc-result"
+                    @click="applyPCPrice(r)"
+                  >
+                    <div class="pc-result-name">{{ r['product-name'] }}</div>
+                    <div class="pc-result-console">{{ r['console-name'] }}</div>
+                    <div class="pc-result-price text-accent">{{ getPCDisplayPrice(r) }}</div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="mt-3" style="font-size:12px;color:var(--text-muted)">
+                <router-link to="/settings">Add a PriceCharting API key</router-link> to fetch live prices for sealed &amp; graded items.
               </div>
             </div>
           </div>
@@ -284,6 +314,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel } from '../utils/excel'
 import { getCard, getMarketPrice } from '../services/pokemonApi'
+import { getPCApiKey, searchPCProducts, extractPrice } from '../services/priceCharting'
 import PriceChart from '../components/PriceChart.vue'
 import PortfolioChart from '../components/PortfolioChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
@@ -308,6 +339,76 @@ const confirmDelete = ref(false)
 const editCurrentValue = ref(null)
 const refreshing = ref(false)
 const refreshStatus = ref('')
+
+// PriceCharting
+const hasPCKey = computed(() => !!getPCApiKey())
+const pcQuery = ref('')
+const pcSearching = ref(false)
+const pcResults = ref([])
+const pcError = ref('')
+const pcQueryPlaceholder = computed(() => {
+  if (!selectedItem.value) return 'Search PriceCharting…'
+  if (selectedItem.value.type === 'graded') {
+    return `${selectedItem.value.cardData?.name || ''} PSA`
+  }
+  return selectedItem.value.name || 'Search PriceCharting…'
+})
+
+watch(selectedItem, (item) => {
+  pcResults.value = []
+  pcError.value = ''
+  if (item?.type === 'graded') {
+    pcQuery.value = `${item.cardData?.name || ''} PSA`
+  } else if (item?.type === 'sealed') {
+    pcQuery.value = item.name || ''
+  } else {
+    pcQuery.value = ''
+  }
+})
+
+async function searchPC() {
+  if (!pcQuery.value.trim()) return
+  pcSearching.value = true
+  pcError.value = ''
+  pcResults.value = []
+  try {
+    const results = await searchPCProducts(pcQuery.value)
+    // Filter to Pokemon-related results and cap at 6
+    const filtered = results
+      .filter(r => {
+        const name = (r['product-name'] || '').toLowerCase()
+        const console = (r['console-name'] || '').toLowerCase()
+        return console.includes('pokemon') || console.includes('tcg') || console.includes('card')
+      })
+      .slice(0, 6)
+    pcResults.value = filtered.length > 0 ? filtered : results.slice(0, 6)
+    if (pcResults.value.length === 0) pcError.value = 'No results found'
+  } catch (e) {
+    if (e.message === 'no_key') pcError.value = 'No API key — add one in Settings'
+    else if (e.message === 'bad_key') pcError.value = 'Invalid API key'
+    else if (e.message === 'cors') pcError.value = 'Network error — check console'
+    else pcError.value = 'Search failed'
+  } finally {
+    pcSearching.value = false
+  }
+}
+
+function getPCDisplayPrice(product) {
+  if (!selectedItem.value) return '—'
+  const price = extractPrice(product, selectedItem.value.type, selectedItem.value.grade)
+  return price ? `$${price.toFixed(2)}` : 'No price'
+}
+
+function applyPCPrice(product) {
+  if (!selectedItem.value) return
+  const price = extractPrice(product, selectedItem.value.type, selectedItem.value.grade)
+  if (!price) { pcError.value = 'No matching price for this item type/grade'; return }
+  const key = selectedItem.value.type === 'card' ? 'currentMarketPrice' : 'currentValue'
+  store.updateItem(portfolio.value.id, selectedItem.value.id, { [key]: price })
+  editCurrentValue.value = price
+  pcResults.value = []
+  pcError.value = ''
+}
 
 const filters = [
   { label: 'All', value: 'all' },
@@ -520,9 +621,59 @@ function deletePortfolio() {
 .info-label { color: var(--text-muted); }
 .panel-chart-section { border-top: 1px solid var(--border); padding-top: 20px; }
 
+/* PriceCharting fetch */
+.pc-fetch-section {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 12px;
+}
+.pc-fetch-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.pc-results {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.pc-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.pc-result:last-child { border-bottom: none; }
+.pc-result:hover { background: var(--bg-hover); }
+.pc-result-name { font-size: 12px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-result-console { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.pc-result-price { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+
+/* Mobile / tablet */
 @media (max-width: 768px) {
   .panel-body-row { flex-direction: column; }
   .filter-tabs { flex-wrap: wrap; }
   .search-mini-wrap { width: 100%; }
+  .portfolio-header-actions { gap: 6px; }
+  .portfolio-header-actions .btn { font-size: 11px; padding: 4px 8px; }
+}
+
+@media (max-width: 640px) {
+  /* Make items table scrollable horizontally */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  /* Collapse section header on mobile */
+  .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .section-header > div:last-child { width: 100%; }
+  /* Filter tabs */
+  .filter-tabs { width: 100%; }
+  .filter-tab { flex: 1; justify-content: center; }
+  /* Stats */
+  .stats-row { grid-template-columns: 1fr 1fr; }
 }
 </style>

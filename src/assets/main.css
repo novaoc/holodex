@@ -335,3 +335,37 @@ a:hover { text-decoration: underline; }
   .grid-4 { grid-template-columns: 1fr 1fr; }
   .form-row-3 { grid-template-columns: 1fr 1fr; }
 }
+
+@media (max-width: 640px) {
+  :root { --header-height: 52px; }
+
+  /* Typography scale */
+  .stat-tile .value { font-size: 20px; }
+  .section-title { font-size: 15px; }
+
+  /* Collapse 2-col form rows to single column on phones */
+  .form-row { grid-template-columns: 1fr; }
+  .form-row-3 { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+
+  /* Modal full-width on phones */
+  .modal-overlay { padding: 12px; align-items: flex-end; }
+  .modal { max-height: 95vh; border-radius: var(--radius-lg) var(--radius-lg) 0 0; }
+
+  /* Cards tighter padding */
+  .card { padding: 14px; }
+
+  /* Scrollable table helper */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table { min-width: 560px; }
+
+  /* Main content padding */
+  /* (handled by App.vue scoped already, reinforcing here) */
+}
+
+@media (max-width: 480px) {
+  .stat-tile .value { font-size: 18px; }
+  .stat-tile { padding: 12px 14px; }
+}
