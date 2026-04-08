@@ -94,6 +94,26 @@
             placeholder="Filter cards..."
             style="width:160px"
           />
+          <div class="add-set-wrap">
+            <button class="btn btn-primary btn-sm" @click="showAddSetMenu = !showAddSetMenu">
+              + Add Set
+            </button>
+            <div v-if="showAddSetMenu" class="add-set-dropdown">
+              <div class="add-set-label">Add all cards to:</div>
+              <button
+                v-for="p in store.portfolios"
+                :key="p.id"
+                class="add-set-option"
+                @click="addSetToPortfolio(p.id)"
+              >
+                <span class="portfolio-dot" :style="{ background: p.color }"></span>
+                {{ p.name }}
+                <span class="add-set-count">{{ p.items.length }}</span>
+              </button>
+              <div v-if="addingSet" class="add-set-progress">Adding {{ cards.length }} cards...</div>
+              <div v-if="addSetDone" class="add-set-done">✓ Added!</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -238,8 +258,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { getSets, getCardsBySet, getMarketPrice, formatVariantLabel, getJapaneseSets, getJapaneseCardsBySet, getJapaneseCardDetail } from '../services/pokemonApi'
+import { usePortfolioStore } from '../stores/portfolio'
 import PriceChart from '../components/PriceChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
+
+const store = usePortfolioStore()
 
 // Set list state
 const sets = ref([])
@@ -264,6 +287,11 @@ const totalCardPages = computed(() => Math.ceil(totalCards.value / cardPageSize)
 const selectedCard = ref(null)
 const showAddModal = ref(false)
 const modalCard = ref(null)
+
+// Add set to portfolio
+const showAddSetMenu = ref(false)
+const addingSet = ref(false)
+const addSetDone = ref(false)
 
 const filteredSets = computed(() => {
   const q = setFilter.value.toLowerCase()
@@ -401,6 +429,52 @@ function formatDate(dateStr) {
   return `${months[parseInt(m, 10) - 1]} ${y}`
 }
 
+async function addSetToPortfolio(portfolioId) {
+  if (addingSet.value) return
+  addingSet.value = true
+  addSetDone.value = false
+  showAddSetMenu.value = false
+
+  // Load all cards for this set (not just current page)
+  let allCards = []
+  if (selectedSet.value._lang === 'ja') {
+    const data = await getJapaneseCardsBySet(selectedSet.value.id, 1, 999)
+    allCards = data.data || []
+  } else {
+    const data = await getCardsBySet(selectedSet.value.id, 1, 200)
+    allCards = data.data || []
+  }
+
+  let added = 0
+  for (const card of allCards) {
+    const price = getMarketPrice(card)
+    const priceVal = price?.price || price || 0
+    store.addItem(portfolioId, {
+      type: 'card',
+      quantity: 1,
+      purchasePrice: 0,
+      purchaseDate: '',
+      notes: '',
+      cardId: card.id,
+      cardData: {
+        name: card.name,
+        number: card.number,
+        images: card.images,
+        set: { id: card.set?.id, name: card.set?.name },
+        rarity: card.rarity,
+        supertype: card.supertype,
+      },
+      priceVariant: price?.variant || '',
+      currentMarketPrice: priceVal,
+    })
+    added++
+  }
+
+  addingSet.value = false
+  addSetDone.value = true
+  setTimeout(() => { addSetDone.value = false }, 2000)
+}
+
 onMounted(loadSets)
 </script>
 
@@ -478,6 +552,42 @@ onMounted(loadSets)
 }
 .browse-symbol { width: 22px; height: 22px; object-fit: contain; }
 .set-browse-filters { display: flex; gap: 8px; align-items: center; }
+
+/* Add set to portfolio dropdown */
+.add-set-wrap { position: relative; }
+.add-set-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  min-width: 200px;
+  z-index: 50;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.add-set-label { font-size: 11px; color: var(--text-muted); padding: 4px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.add-set-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+  text-align: left;
+}
+.add-set-option:hover { background: var(--bg-hover); }
+.portfolio-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.add-set-count { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+.add-set-progress { font-size: 12px; color: var(--accent); padding: 8px; text-align: center; }
+.add-set-done { font-size: 12px; color: var(--success, #3fb950); padding: 8px; text-align: center; }
 
 /* Card grid — same as SearchView */
 .cards-grid {
