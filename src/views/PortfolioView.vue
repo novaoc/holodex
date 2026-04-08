@@ -571,7 +571,12 @@ async function refreshPrices() {
       try {
         const result = await fetchPrice(query, grade)
         if (result?.price) {
-          store.updateItem(portfolio.value.id, item.id, { currentValue: result.price })
+          const updates = { currentValue: result.price }
+          // Backfill image for items that don't have one
+          if (!item.imageUrl && result.image) {
+            updates.imageUrl = result.image
+          }
+          store.updateItem(portfolio.value.id, item.id, updates)
           updated++
         }
       } catch {}

@@ -128,6 +128,7 @@ export async function fetchPrice(query, grade = 'ungraded') {
     product_name: product.productName || '',
     product_set: product.consoleName || '',
     product_url: product.id ? `${PC_BASE}/game/${product.id}` : '',
+    image: product.imageUri ? `${PC_BASE}${product.imageUri}` : '',
     all_grades: {
       ungraded: parsePrice(product.price1),
       grade9:   parsePrice(product.price2),
