@@ -111,6 +111,48 @@ const JP_EN_NAMES = {
   M1S: 'Mega Symphonia', M3: 'Munice Zero'
 }
 
+// Pokellector CDN logo URLs for Japanese sets (tcgdex has no set logos)
+// Source: https://jp.pokellector.com/sets
+const JP_SET_LOGOS = {
+  // Scarlet & Violet era
+  SV1S: 'https://den-media.pokellector.com/logos/Scarlet-ex.logo.361.png',
+  SV1V: 'https://den-media.pokellector.com/logos/Violet-ex.logo.362.png',
+  SV2D: 'https://den-media.pokellector.com/logos/Snow-Hazard.logo.369.png',
+  SV2P: 'https://den-media.pokellector.com/logos/Clay-Burst.logo.370.png',
+  SV3: 'https://den-media.pokellector.com/logos/Ruler-of-the-Black-Flame.logo.368.png',
+  SV3a: 'https://den-media.pokellector.com/logos/Raging-Surf.logo.376.png',
+  SV4K: 'https://den-media.pokellector.com/logos/Ancient-Roar.logo.381.png',
+  SV4M: 'https://den-media.pokellector.com/logos/Future-Flash.logo.382.png',
+  SV5K: 'https://den-media.pokellector.com/logos/Wild-Force.logo.386.png',
+  SV5a: 'https://den-media.pokellector.com/logos/Cyber-Judge.logo.387.png',
+  SV6: 'https://den-media.pokellector.com/logos/Stella-Miracle.logo.401.png',
+  SV7: 'https://den-media.pokellector.com/logos/Super-Electric-Breaker.logo.405.png',
+  SV7a: 'https://den-media.pokellector.com/logos/Paradise-Dragona.logo.403.png',
+  SV8: 'https://den-media.pokellector.com/logos/Terastal-Festival-ex.logo.406.png',
+  SV8a: 'https://den-media.pokellector.com/logos/Terastal-Festival-ex.logo.406.png',
+  SV9: 'https://den-media.pokellector.com/logos/Battle-Partners.logo.408.png',
+  SV9a: 'https://den-media.pokellector.com/logos/Glory-of-Team-Rocket.logo.413.png',
+  SV10: 'https://den-media.pokellector.com/logos/Hot-Air-Arena.logo.411.png',
+  SV10a: 'https://den-media.pokellector.com/logos/Glory-of-Team-Rocket.logo.413.png',
+  SVK: 'https://den-media.pokellector.com/logos/Shiny-Treasure-ex.logo.375.png',
+  SV11B: 'https://den-media.pokellector.com/logos/Black-Bolt.logo.414.png',
+  SV11W: 'https://den-media.pokellector.com/logos/White-Flare.logo.415.png',
+  // Sword & Shield era
+  S1: 'https://den-media.pokellector.com/logos/Sword-Shield.logo.282.png',
+  S4a: 'https://den-media.pokellector.com/logos/Shiny-Star-V.logo.301.png',
+  S8b: 'https://den-media.pokellector.com/logos/VMAX-Climax.logo.338.png',
+  S9: 'https://den-media.pokellector.com/logos/Star-Birth.logo.336.png',
+  S9a: 'https://den-media.pokellector.com/logos/Battle-Region.logo.339.png',
+  S10: 'https://den-media.pokellector.com/logos/Space-Juggler.logo.342.png',
+  S10D: 'https://den-media.pokellector.com/logos/Time-Gazer.logo.341.png',
+  S10b: 'https://den-media.pokellector.com/logos/Pokmon-GO.logo.347.png',
+  S11: 'https://den-media.pokellector.com/logos/Triple-Beat.logo.366.png',
+  S12: 'https://den-media.pokellector.com/logos/Paradigm-Trigger.logo.351.png',
+  S12a: 'https://den-media.pokellector.com/logos/VSTAR-Universe.logo.357.png',
+  // Mega era
+  M1S: 'https://den-media.pokellector.com/logos/Mega-Symphonia.logo.417.png',
+}
+
 // Determine tcgdex CDN series prefix from set ID
 function jpSetToSeries(setId) {
   const id = setId.toUpperCase()
@@ -171,7 +213,7 @@ export async function getJapaneseSets() {
     total: s.cardCount?.total || 0,
     printedTotal: s.cardCount?.official || 0,
     releaseDate: s.releaseDate || null,
-    images: { logo: null, symbol: null },
+    images: { logo: JP_SET_LOGOS[s.id] || null, symbol: null },
     _lang: 'ja',
     _series: jpSetToSeries(s.id),
     _hasImages: !!jpSetToSeries(s.id)
