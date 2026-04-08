@@ -1,6 +1,6 @@
 {
-  "name": "Holodex — Pokémon Portfolio Tracker",
-  "short_name": "Holodex",
+  "name": "Rarebox — Pokémon Portfolio Tracker",
+  "short_name": "Rarebox",
   "description": "Track your Pokémon TCG collection with live prices and portfolio charts.",
   "start_url": "/",
   "display": "standalone",
