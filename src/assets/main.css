@@ -35,6 +35,9 @@ html, body, #app {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  overscroll-behavior: none;
 }
 
 /* Scrollbars */
@@ -365,6 +368,9 @@ a:hover { text-decoration: underline; }
   /* Touch-friendly buttons */
   .btn { min-height: 40px; }
   .btn-sm { min-height: 36px; }
+
+  /* Prevent iOS auto-zoom on input focus (needs 16px+) */
+  .input, .select, .textarea { font-size: 16px; }
 }
 
 @media (max-width: 480px) {
