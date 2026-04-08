@@ -553,6 +553,7 @@ async function refreshPrices() {
     })
   ])
 
+  if (updated > 0) store.recordSnapshot(portfolio.value.id)
   refreshStatus.value = updated > 0 ? `Updated ${updated} item${updated > 1 ? 's' : ''}` : 'No updates'
   setTimeout(() => { refreshStatus.value = '' }, 3000)
   refreshing.value = false

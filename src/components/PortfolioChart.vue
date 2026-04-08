@@ -42,6 +42,9 @@
 <script setup>
 import { ref, watch, onMounted, computed } from 'vue'
 import { fetchPriceHistory, buildChartSeries } from '../services/priceHistory'
+import { usePortfolioStore } from '../stores/portfolio'
+
+const store = usePortfolioStore()
 
 const props = defineProps({
   portfolios: { type: Array, required: true },
@@ -127,6 +130,11 @@ const chartOptions = ref({
   markers: { size: 0, hover: { size: 5 } }
 })
 
+// Find which portfolio an item belongs to
+function portfolioForItem(itemId) {
+  return props.portfolios.find(p => p.items.some(i => i.id === itemId))
+}
+
 async function buildPortfolioHistory() {
   loading.value = true
   noData.value = false
@@ -150,24 +158,54 @@ async function buildPortfolioHistory() {
     })
   )
 
-  // Build per-item sorted series (keyed by item.id to handle duplicate cardIds with diff quantities)
+  // Build per-item sorted series (keyed by item.id)
   const itemSeriesMap = {}
-  for (const item of cardItems) {
-    if (historyMap[item.cardId]) {
+
+  for (const item of allItems) {
+    const portfolio = portfolioForItem(item.id)
+    const portfolioId = portfolio?.id
+
+    if (item.type === 'card' && historyMap[item.cardId]) {
+      // Use tcgdex historical data
       const result = buildChartSeries(historyMap[item.cardId], item.currentMarketPrice || item.purchasePrice)
       const series = Array.isArray(result) ? result : (result?.series || [])
       if (series.length > 0) {
         itemSeriesMap[item.id] = series.slice().sort((a, b) => a.x - b.x)
       }
     }
+
+    // For cards with no tcgdex history AND for graded/sealed: use snapshot history
+    if (!itemSeriesMap[item.id] && portfolioId) {
+      const snaps = store.getItemHistory(portfolioId, item.id)
+      if (snaps.length > 0) {
+        itemSeriesMap[item.id] = snaps.slice().sort((a, b) => a.x - b.x)
+      }
+    }
+
+    // Last resort: synthesize 2 points (purchase → today) so chart always draws a line
+    if (!itemSeriesMap[item.id]) {
+      const currentPrice = item.type === 'card'
+        ? (item.currentMarketPrice || item.purchasePrice || 0)
+        : (item.currentValue || item.purchasePrice || 0)
+      const purchasePrice = item.purchasePrice || 0
+      const purchaseTs = item.purchaseDate
+        ? new Date(item.purchaseDate).getTime()
+        : Date.now() - 1000 * 60 * 60 * 24 // yesterday if no date
+
+      const pts = []
+      if (purchasePrice > 0) pts.push({ x: purchaseTs, y: purchasePrice })
+      if (currentPrice > 0 && currentPrice !== purchasePrice) pts.push({ x: Date.now(), y: currentPrice })
+      else if (currentPrice > 0) pts.push({ x: Date.now(), y: currentPrice })
+      if (pts.length > 0) itemSeriesMap[item.id] = pts
+    }
   }
 
-  // Collect all unique timestamps across all card histories
+  // Collect all unique timestamps
   const allTimestamps = new Set()
   for (const series of Object.values(itemSeriesMap)) {
     for (const pt of series) allTimestamps.add(pt.x)
   }
-  allTimestamps.add(Date.now()) // always include today
+  allTimestamps.add(Date.now())
 
   if (allTimestamps.size === 0) {
     noData.value = true
@@ -180,28 +218,18 @@ async function buildPortfolioHistory() {
   // LOCF: for every timestamp, each item contributes its most recent known price
   const points = sortedTs.map(ts => {
     let total = 0
-
     for (const item of allItems) {
       const qty = item.quantity || 1
-
-      if (item.type === 'card' && itemSeriesMap[item.id]) {
-        // Walk the sorted series and take the last price at or before ts
-        const series = itemSeriesMap[item.id]
-        let price = item.purchasePrice || 0 // fallback before first data point
+      const series = itemSeriesMap[item.id]
+      if (series) {
+        let price = item.purchasePrice || 0
         for (const pt of series) {
           if (pt.x <= ts) price = pt.y
           else break
         }
         total += price * qty
-      } else {
-        // Sealed / graded — no price history, contribute current value flat
-        const val = item.type === 'card'
-          ? (item.currentMarketPrice || item.purchasePrice || 0)
-          : (item.currentValue || item.purchasePrice || 0)
-        total += val * qty
       }
     }
-
     return { x: ts, y: Math.round(total * 100) / 100 }
   })
 

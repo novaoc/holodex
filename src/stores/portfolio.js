@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 
 const STORAGE_KEY = 'holodex_portfolios'
 const SETTINGS_KEY = 'holodex_settings'
+const SNAPSHOTS_KEY = 'holodex_snapshots'
+const MAX_SNAPSHOTS = 365 // one per day for a year
 
 function generateId() {
   return crypto.randomUUID()
@@ -25,11 +27,23 @@ function saveToStorage(portfolios) {
   }
 }
 
+function loadSnapshots() {
+  try {
+    const raw = localStorage.getItem(SNAPSHOTS_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch { return {} }
+}
+
+function saveSnapshots(data) {
+  try { localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(data)) } catch {}
+}
+
 export const usePortfolioStore = defineStore('portfolio', () => {
   // State
   const portfolios = ref([])
   const activePortfolioId = ref(null)
   const settings = ref({ currency: 'USD', defaultPortfolioId: null })
+  const snapshots = ref(loadSnapshots()) // { [portfolioId]: [{date, ts, values: {itemId: price}}] }
 
   // Init — load from localStorage
   function init() {
@@ -178,13 +192,79 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     return { totalCost, totalValue, gain, gainPct, itemCount: items.length, topGainer }
   }
 
+  // ── Snapshot system ──────────────────────────────────────────────────────
+  // Records a daily price snapshot for all items in a portfolio.
+  // Call this after refreshPrices() completes.
+  function recordSnapshot(portfolioId) {
+    const portfolio = portfolios.value.find(p => p.id === portfolioId)
+    if (!portfolio) return
+
+    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    const ts = Date.now()
+
+    const values = {}
+    for (const item of portfolio.items) {
+      const price = item.type === 'card'
+        ? (item.currentMarketPrice || item.purchasePrice || 0)
+        : (item.currentValue || item.purchasePrice || 0)
+      if (price > 0) values[item.id] = price
+    }
+
+    if (Object.keys(values).length === 0) return
+
+    const list = snapshots.value[portfolioId] || []
+    // Replace today's snapshot if it exists, else append
+    const todayIdx = list.findIndex(s => s.date === today)
+    if (todayIdx >= 0) {
+      list[todayIdx] = { date: today, ts, values }
+    } else {
+      list.push({ date: today, ts, values })
+    }
+
+    // Trim to max
+    if (list.length > MAX_SNAPSHOTS) list.splice(0, list.length - MAX_SNAPSHOTS)
+    snapshots.value[portfolioId] = list
+    saveSnapshots(snapshots.value)
+  }
+
+  // Returns [{x: timestamp, y: price}] for a specific item across all snapshots.
+  // Prepends the purchase-date point as the synthetic origin.
+  function getItemHistory(portfolioId, itemId) {
+    const portfolio = portfolios.value.find(p => p.id === portfolioId)
+    const item = portfolio?.items.find(i => i.id === itemId)
+    if (!item) return []
+
+    const list = snapshots.value[portfolioId] || []
+    const points = []
+
+    // Synthetic origin: purchase date → purchase price
+    if (item.purchaseDate && item.purchasePrice > 0) {
+      const purchaseTs = new Date(item.purchaseDate).getTime()
+      // Only add if before first snapshot
+      const firstSnap = list[0]
+      if (!firstSnap || purchaseTs < firstSnap.ts) {
+        points.push({ x: purchaseTs, y: item.purchasePrice })
+      }
+    }
+
+    // Snapshot points
+    for (const snap of list) {
+      if (snap.values[itemId] != null) {
+        points.push({ x: snap.ts, y: snap.values[itemId] })
+      }
+    }
+
+    return points
+  }
+
   // Reset everything
   function resetAll() {
     portfolios.value = []
     activePortfolioId.value = null
+    snapshots.value = {}
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(SETTINGS_KEY)
-    // Clear price caches too
+    localStorage.removeItem(SNAPSHOTS_KEY)
     const cacheKeys = Object.keys(localStorage).filter(k => k.startsWith('ph_cache_'))
     cacheKeys.forEach(k => localStorage.removeItem(k))
     init()
@@ -195,6 +275,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     activePortfolioId,
     activePortfolio,
     settings,
+    snapshots,
     totalPortfolioValue,
     totalCostBasis,
     init,
@@ -208,6 +289,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     removeItem,
     updateCardPrice,
     getPortfolioStats,
+    recordSnapshot,
+    getItemHistory,
     resetAll
   }
 })
