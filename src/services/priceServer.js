@@ -18,20 +18,20 @@ export async function checkServerHealth() {
 }
 
 /**
- * Fetch market price from eBay sold listings.
- * @param {string} query - Search query (e.g. "Charizard PSA 10 Base Set")
- * @param {number} limit - Number of recent sales to sample (3–30, default 12)
- * @returns {{ median, mean, min, max, count, prices, query, cached }} or throws
+ * Fetch market price from PriceCharting (scraped, no key needed).
+ * @param {string} query  - Search query (e.g. "Gengar VMAX Fusion Strike")
+ * @param {string} grade  - Grade key: "ungraded", "9", "9.5", "10", "psa10", etc.
+ * @returns {{ price, grade, product_name, product_set, all_grades, cached }} or throws
  */
-export async function fetchEbayPrice(query, limit = 12) {
+export async function fetchPrice(query, grade = 'ungraded') {
   const q = query.trim()
   if (!q) throw new Error('empty_query')
 
   let res
   try {
     res = await fetch(
-      `${BASE_URL}/price?q=${encodeURIComponent(q)}&limit=${limit}`,
-      { signal: AbortSignal.timeout(15000) }
+      `${BASE_URL}/price?q=${encodeURIComponent(q)}&grade=${encodeURIComponent(grade)}`,
+      { signal: AbortSignal.timeout(30000) }
     )
   } catch (e) {
     if (e.name === 'TimeoutError') throw new Error('timeout')
@@ -43,3 +43,6 @@ export async function fetchEbayPrice(query, limit = 12) {
 
   return res.json()
 }
+
+// Backwards-compat alias
+export const fetchEbayPrice = fetchPrice

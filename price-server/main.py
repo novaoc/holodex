@@ -1,29 +1,38 @@
 #!/usr/bin/env python3
 """
 Holodex Price Server
-Scrapes eBay completed/sold listings to get market prices for sealed products
-and graded slabs. No API keys required.
+Scrapes PriceCharting.com (public pages, no API key) for Pokemon card,
+graded slab, and sealed product prices.
 
 Usage:
     pip install -r requirements.txt
     python main.py
 
 Runs on http://localhost:7890
+
+Rate limiting: max 1 concurrent PriceCharting request, 1.5s between requests.
+Cache: 6 hours in-memory.
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
 from bs4 import BeautifulSoup
-import statistics
 import re
 import time
+import asyncio
 from urllib.parse import quote_plus
 from typing import Optional
 
-app = FastAPI(title="Holodex Price Server", version="1.0")
+try:
+    import curl_cffi.requests as cffi_req
+    USE_CFFI = True
+except ImportError:
+    import httpx
+    USE_CFFI = False
+
+app = FastAPI(title="Holodex Price Server", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,10 +41,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory cache: key → { data, expires }
+# ── Cache ────────────────────────────────────────────────────────────────────
 _cache: dict = {}
-CACHE_TTL = 60 * 30  # 30 minutes
-
+CACHE_TTL = 60 * 60 * 6  # 6 hours
 
 def _get(key: str):
     entry = _cache.get(key)
@@ -43,119 +51,260 @@ def _get(key: str):
         return entry["data"]
     return None
 
-
 def _set(key: str, data):
     _cache[key] = {"data": data, "expires": time.time() + CACHE_TTL}
 
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+_pc_semaphore = asyncio.Semaphore(1)  # only 1 concurrent PC request
+_last_request_time: float = 0
+MIN_REQUEST_GAP = 1.5  # seconds between requests
 
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-}
+async def _fetch(url: str) -> str:
+    """Fetch a URL with PriceCharting-friendly headers and rate limiting."""
+    global _last_request_time
 
+    async with _pc_semaphore:
+        # Enforce minimum gap between requests
+        elapsed = time.time() - _last_request_time
+        if elapsed < MIN_REQUEST_GAP:
+            await asyncio.sleep(MIN_REQUEST_GAP - elapsed)
 
-def parse_price(text: str) -> float | None:
-    """Extract a USD price from a string. Handles ranges by taking the lower bound."""
-    text = text.replace(",", "").strip()
-    text = text.split(" to ")[0]  # "$5.00 to $10.00" → "$5.00"
-    m = re.search(r"\$?([\d]+\.?\d*)", text)
-    if m:
         try:
-            val = float(m.group(1))
-            return val if val > 0.5 else None
-        except ValueError:
-            pass
-    return None
+            if USE_CFFI:
+                async with cffi_req.AsyncSession(impersonate="chrome124") as s:
+                    resp = await s.get(url, timeout=20)
+                text = resp.text
+                status = resp.status_code
+            else:
+                async with httpx.AsyncClient(timeout=20, follow_redirects=True) as s:
+                    resp = await s.get(url, headers={
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/124.0.0.0 Safari/537.36",
+                        "Accept-Language": "en-US,en;q=0.9",
+                    })
+                text = resp.text
+                status = resp.status_code
+        finally:
+            _last_request_time = time.time()
 
+    if status != 200:
+        raise HTTPException(502, f"PriceCharting returned {status}")
+    return text
 
-async def scrape_ebay_sold(query: str, limit: int = 15) -> list[float]:
-    """
-    Fetch eBay completed+sold listings and return list of sold prices (USD).
-    Uses _sop=13 (newly listed first) so we get recent sales.
-    """
-    url = (
-        "https://www.ebay.com/sch/i.html"
-        f"?_nkw={quote_plus(query)}"
-        "&LH_Sold=1&LH_Complete=1&_sop=13&_ipg=25"
-    )
+# ── Parsers ───────────────────────────────────────────────────────────────────
 
+def _parse_price(text: str) -> float | None:
+    """Parse '$1,234.56' → 1234.56"""
+    if not text:
+        return None
+    clean = text.replace(",", "").replace("$", "").strip()
     try:
-        async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-            resp = await client.get(url, headers=HEADERS)
-    except httpx.TimeoutException:
-        raise HTTPException(504, "eBay request timed out")
-    except httpx.RequestError as e:
-        raise HTTPException(502, f"Network error: {e}")
+        val = float(clean)
+        return val if val > 0 else None
+    except ValueError:
+        return None
 
-    if resp.status_code != 200:
-        raise HTTPException(502, f"eBay returned {resp.status_code}")
-
-    soup = BeautifulSoup(resp.text, "html.parser")
-    prices = []
-
-    for item in soup.select(".s-item"):
-        # Skip eBay's injected "Shop on eBay" ghost row
-        title_el = item.select_one(".s-item__title")
-        if not title_el or "shop on ebay" in title_el.get_text().lower():
+def _parse_search_results(html: str) -> list[dict]:
+    """Parse PriceCharting search results page into product list."""
+    soup = BeautifulSoup(html, "html.parser")
+    rows = soup.select("table#games_table tbody tr")
+    results = []
+    for row in rows:
+        cells = row.select("td")
+        if len(cells) < 4:
             continue
-
-        price_el = item.select_one(".s-item__price")
-        if not price_el:
+        a = row.select_one("td a")
+        if not a:
             continue
+        url = a.get("href", "")
+        name_cell = cells[1].get_text(strip=True)
+        # name_cell looks like "Gengar VMAX #157Pokemon Fusion Strike"
+        # Split on the set name pattern
+        name = re.split(r'Pokemon ', name_cell, maxsplit=1)[0].strip()
+        set_name = ("Pokemon " + name_cell.split("Pokemon ", 1)[1]) if "Pokemon " in name_cell else ""
+        ungraded = _parse_price(cells[3].get_text(strip=True)) if len(cells) > 3 else None
+        results.append({
+            "name": name,
+            "set": set_name,
+            "url": url,
+            "ungraded": ungraded,
+        })
+    return results
 
-        price = parse_price(price_el.get_text())
-        if price and price < 50_000:
-            prices.append(price)
+def _parse_product_grades(html: str) -> dict:
+    """
+    Parse a PriceCharting product page into a grade→price dict.
+    Returns keys: ungraded, 1–9, 9.5, psa10, bgs10, cgc10, sgc10, ace10, tag10, bgs10b
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    fp = soup.select_one("#full-prices")
+    if not fp:
+        # Fallback: try the price_data info box
+        return _parse_product_grades_fallback(soup)
 
-        if len(prices) >= limit:
-            break
+    text = fp.get_text(separator="|")
+    prices: dict[str, float] = {}
+
+    # Label map — PriceCharting label → our key
+    label_map = {
+        "ungraded": "ungraded",
+        "grade 1": "1", "grade 2": "2", "grade 3": "3",
+        "grade 4": "4", "grade 5": "5", "grade 6": "6",
+        "grade 7": "7", "grade 8": "8", "grade 9": "9",
+        "grade 9.5": "9.5",
+        "psa 10": "psa10", "psa10": "psa10",
+        "bgs 10": "bgs10", "bgs 10 black": "bgs10b",
+        "cgc 10": "cgc10", "sgc 10": "sgc10",
+        "ace 10": "ace10", "tag 10": "tag10",
+        # sealed aliases
+        "new": "new", "complete": "complete",
+    }
+
+    parts = [p.strip() for p in text.split("|") if p.strip()]
+    i = 0
+    while i < len(parts) - 1:
+        label = parts[i].lower()
+        price_str = parts[i + 1]
+        key = label_map.get(label)
+        if key and price_str.startswith("$"):
+            val = _parse_price(price_str)
+            if val:
+                prices[key] = val
+            i += 2
+        else:
+            i += 1
 
     return prices
 
+def _parse_product_grades_fallback(soup: BeautifulSoup) -> dict:
+    """Fallback: extract prices from the main price_data box."""
+    prices: dict[str, float] = {}
+    pid_map = {
+        "used_price": "ungraded",
+        "complete_price": "7",
+        "new_price": "8",
+        "graded_price": "9",
+        "box_only_price": "9.5",
+        "manual_only_price": "psa10",
+    }
+    for pid, key in pid_map.items():
+        el = soup.select_one(f"#{pid} .js-price")
+        if el:
+            val = _parse_price(el.get_text(strip=True))
+            if val:
+                prices[key] = val
+    return prices
+
+def _grade_key(grade: str) -> str:
+    """Normalize grade input to our internal key."""
+    g = grade.lower().strip()
+    if g in ("10", "psa10", "psa 10", "gem mint"):
+        return "psa10"
+    if g in ("9.5", "bgs9.5"):
+        return "9.5"
+    if g in ("bgs10", "bgs 10"):
+        return "bgs10"
+    if g in ("cgc10", "cgc 10"):
+        return "cgc10"
+    if g in ("ungraded", "raw", "loose"):
+        return "ungraded"
+    # numeric grades 1-9
+    if re.match(r"^\d(\.\d)?$", g):
+        return g
+    return "ungraded"
+
+# ── API endpoints ─────────────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "version": "1.0"}
+    return {"status": "ok", "version": "2.0", "backend": "pricecharting_html"}
 
 
-@app.get("/price")
-async def get_price(
-    q: str = Query(..., description="Search query"),
-    limit: int = Query(12, ge=3, le=30),
-):
+@app.get("/search")
+async def search(q: str = Query(...), limit: int = Query(8, ge=1, le=20)):
     """
-    Get market price estimate from recent eBay sold listings.
-    Returns median, mean, min/max, and the raw price list.
-    Results are cached for 30 minutes.
+    Search PriceCharting for products matching a query.
+    Returns list of {name, set, url, ungraded}.
     """
     q = q.strip()
     if not q:
         raise HTTPException(400, "Query cannot be empty")
 
-    cache_key = f"{q.lower()}:{limit}"
+    cache_key = f"search:{q.lower()}"
+    cached = _get(cache_key)
+    if cached:
+        return {"results": cached[:limit], "cached": True}
+
+    url = f"https://www.pricecharting.com/search-products?q={quote_plus(q)}&type=prices"
+    html = await _fetch(url)
+    results = _parse_search_results(html)
+    # Filter to Pokemon products only
+    pokemon = [r for r in results if "pokemon" in r.get("set", "").lower()]
+    if not pokemon:
+        pokemon = results  # fallback: return all if no Pokemon-specific results
+
+    _set(cache_key, pokemon)
+    return {"results": pokemon[:limit], "cached": False}
+
+
+@app.get("/price")
+async def get_price(
+    q: str = Query(..., description="Search query"),
+    grade: str = Query("ungraded", description="Grade: ungraded, 7, 8, 9, 9.5, 10, psa10, bgs10, etc."),
+):
+    """
+    Get price for the best matching product at the requested grade.
+    For graded slabs: grade=10 or grade=psa10
+    For sealed products: grade=ungraded (uses new/sealed price if available)
+    """
+    q = q.strip()
+    if not q:
+        raise HTTPException(400, "Query cannot be empty")
+
+    gkey = _grade_key(grade)
+    cache_key = f"price:{q.lower()}:{gkey}"
     cached = _get(cache_key)
     if cached:
         return {**cached, "cached": True}
 
-    prices = await scrape_ebay_sold(q, limit)
+    # Step 1: search for matching products
+    search_url = f"https://www.pricecharting.com/search-products?q={quote_plus(q)}&type=prices"
+    search_html = await _fetch(search_url)
+    results = _parse_search_results(search_html)
 
-    if not prices:
-        raise HTTPException(404, "No sold listings found — try a more specific query")
+    pokemon = [r for r in results if "pokemon" in r.get("set", "").lower()]
+    if not pokemon:
+        pokemon = results
+    if not pokemon:
+        raise HTTPException(404, "No products found for that query")
+
+    # Take first result
+    product = pokemon[0]
+
+    # Step 2: fetch product page for grade-specific price
+    product_html = await _fetch(product["url"])
+    grades = _parse_product_grades(product_html)
+
+    # Try requested grade, then fallbacks
+    fallback_order = [gkey, "psa10", "9", "9.5", "8", "ungraded"]
+    price = None
+    used_grade = None
+    for k in fallback_order:
+        if grades.get(k):
+            price = grades[k]
+            used_grade = k
+            break
+
+    if not price:
+        raise HTTPException(404, f"No price found for grade '{grade}' — grades available: {list(grades.keys())}")
 
     result = {
         "query": q,
-        "median": round(statistics.median(prices), 2),
-        "mean": round(statistics.mean(prices), 2),
-        "min": round(min(prices), 2),
-        "max": round(max(prices), 2),
-        "count": len(prices),
-        "prices": [round(p, 2) for p in prices],
-        "source": "ebay_sold",
+        "grade": used_grade,
+        "price": price,
+        "product_name": product["name"],
+        "product_set": product["set"],
+        "product_url": product["url"],
+        "all_grades": grades,
         "cached": False,
     }
     _set(cache_key, result)

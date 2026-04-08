@@ -201,8 +201,8 @@
                 </div>
                 <div v-if="pcError" class="text-danger mt-2" style="font-size:12px">{{ pcError }}</div>
                 <div v-if="pcResult" class="pc-result-box mt-2">
-                  <div class="pc-result-price-main">${{ pcResult.median.toFixed(2) }}</div>
-                  <div class="pc-result-meta">median of {{ pcResult.count }} eBay sales · range ${{ pcResult.min.toFixed(0) }}–${{ pcResult.max.toFixed(0) }}</div>
+                  <div class="pc-result-price-main">${{ pcResult.price.toFixed(2) }}</div>
+                  <div class="pc-result-meta">{{ pcResult.product_name }} · grade {{ pcResult.grade }} · PriceCharting</div>
                   <button class="btn btn-primary btn-sm mt-2" @click="applyPCPrice">Apply price</button>
                 </div>
               </div>
@@ -305,7 +305,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel } from '../utils/excel'
 import { getCard, getMarketPrice } from '../services/pokemonApi'
-import { fetchEbayPrice } from '../services/priceServer'
+import { fetchPrice } from '../services/priceServer'
 import PriceChart from '../components/PriceChart.vue'
 import PortfolioChart from '../components/PortfolioChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
@@ -355,11 +355,12 @@ async function searchPC() {
   pcError.value = ''
   pcResult.value = null
   try {
-    pcResult.value = await fetchEbayPrice(pcQuery.value)
+    const grade = selectedItem.value?.type === 'graded' ? (selectedItem.value.grade || '10') : 'ungraded'
+    pcResult.value = await fetchPrice(pcQuery.value, grade)
   } catch (e) {
     if (e.message === 'server_down') pcError.value = 'Price server offline — run price-server/main.py'
-    else if (e.message === 'timeout') pcError.value = 'Request timed out — eBay may be slow'
-    else if (e.message === 'no_results') pcError.value = 'No sold listings found — try a different query'
+    else if (e.message === 'timeout') pcError.value = 'Request timed out'
+    else if (e.message === 'no_results') pcError.value = 'No results found — try a different query'
     else pcError.value = 'Fetch failed'
   } finally {
     pcSearching.value = false
@@ -368,7 +369,7 @@ async function searchPC() {
 
 function applyPCPrice() {
   if (!selectedItem.value || !pcResult.value) return
-  const price = pcResult.value.median
+  const price = pcResult.value.price
   const key = selectedItem.value.type === 'card' ? 'currentMarketPrice' : 'currentValue'
   store.updateItem(portfolio.value.id, selectedItem.value.id, { [key]: price })
   editCurrentValue.value = price
@@ -488,17 +489,30 @@ function removeItem(item) {
   }
 }
 
-function ebayQueryForItem(item) {
+function pcQueryForItem(item) {
   if (item.type === 'graded') {
     const name = item.cardData?.name || item.name || ''
-    const company = item.gradingCompany || 'PSA'
-    const grade = item.grade || '10'
-    return `${name} ${company} ${grade} pokemon`.trim()
+    const set = item.cardData?.set?.name || ''
+    return `${name} ${set}`.trim()
   }
   if (item.type === 'sealed') {
-    return `${item.name || ''} pokemon sealed`.trim()
+    return (item.name || '').trim()
   }
   return null
+}
+
+function pcGradeForItem(item) {
+  if (item.type === 'graded') {
+    const company = (item.gradingCompany || 'PSA').toLowerCase()
+    const grade = item.grade || '10'
+    // Map to our grade keys
+    if (company === 'psa') return grade === '10' ? 'psa10' : grade
+    if (company === 'bgs') return grade === '10' ? 'bgs10' : grade
+    if (company === 'cgc') return grade === '10' ? 'cgc10' : grade
+    if (company === 'sgc') return grade === '10' ? 'sgc10' : grade
+    return grade
+  }
+  return 'ungraded'
 }
 
 async function refreshPrices() {
@@ -523,14 +537,15 @@ async function refreshPrices() {
         }
       } catch {}
     }),
-    // Graded slabs + sealed — eBay sold listings
+    // Graded slabs + sealed — PriceCharting (scraped)
     ...ebayItems.map(async item => {
-      const query = ebayQueryForItem(item)
+      const query = pcQueryForItem(item)
+      const grade = pcGradeForItem(item)
       if (!query) return
       try {
-        const result = await fetchEbayPrice(query, 12)
-        if (result?.median) {
-          store.updateItem(portfolio.value.id, item.id, { currentValue: result.median })
+        const result = await fetchPrice(query, grade)
+        if (result?.price) {
+          store.updateItem(portfolio.value.id, item.id, { currentValue: result.price })
           updated++
         }
       } catch {}
