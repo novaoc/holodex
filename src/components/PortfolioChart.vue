@@ -288,6 +288,8 @@ onMounted(buildPortfolioHistory)
 @media (max-width: 640px) {
   .chart-top { flex-direction: column; }
   .chart-controls { width: 100%; justify-content: flex-start; overflow-x: auto; }
+  .portfolio-value { font-size: 22px; }
+  .range-btn { padding: 4px 10px; font-size: 12px; }
 }
 .portfolio-value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .portfolio-change { font-size: 13px; margin-top: 4px; }

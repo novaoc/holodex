@@ -700,31 +700,67 @@ function deletePortfolio() {
   margin-top: 2px;
 }
 
-/* Mobile / tablet */
+/* Item detail panel — mobile bottom sheet */
 @media (max-width: 768px) {
+  .item-detail-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    max-height: 85vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 -8px 32px rgba(0,0,0,0.5);
+  }
+  .item-detail-panel::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 8px auto 4px;
+  }
   .panel-body-row { flex-direction: column; }
+  .panel-left { display: flex; justify-content: center; }
+  .panel-img { width: 120px; }
   .filter-tabs { flex-wrap: wrap; }
   .search-mini-wrap { width: 100%; }
-  .portfolio-header-actions { gap: 6px; }
-  .portfolio-header-actions .btn { font-size: 11px; padding: 4px 8px; }
+  .portfolio-header { flex-direction: column; gap: 12px; }
+  .portfolio-header-actions { width: 100%; justify-content: flex-start; }
+  .portfolio-header-actions .btn { font-size: 11px; padding: 5px 8px; }
+  .portfolio-name { font-size: 18px; }
+  .portfolio-dot-lg { width: 12px; height: 12px; margin-top: 4px; }
   /* Hide less critical columns */
   .table th:nth-child(2), .table td:nth-child(2) { display: none; } /* Type */
   .table th:last-child, .table td:last-child { display: none; } /* Actions */
-  .table { min-width: 400px; }
+  .table { min-width: 360px; }
+  .item-thumb { width: 30px; height: 42px; }
+  .item-name { font-size: 12px; }
+  .item-sub { font-size: 10px; }
 }
 
 @media (max-width: 640px) {
+  .item-detail-panel { max-height: 90vh; }
   /* Make items table scrollable horizontally */
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   /* Collapse section header on mobile */
   .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
   .section-header > div:last-child { width: 100%; }
-  /* Filter tabs */
+  /* Filter tabs — full width grid */
   .filter-tabs { width: 100%; }
-  .filter-tab { flex: 1; justify-content: center; }
+  .filter-tab { flex: 1; justify-content: center; padding: 6px 4px; }
   /* Stats */
-  .stats-row { grid-template-columns: 1fr 1fr; }
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat-tile { padding: 12px 10px; }
+  .stat-tile .value { font-size: 18px; }
   /* Compact gain/loss on small screens */
   .gain-pct { display: none; }
+  /* Name edit */
+  .name-edit-row { flex-wrap: wrap; }
+  .name-input { width: 100%; }
+  .portfolio-header-actions { flex-wrap: wrap; }
 }
 </style>

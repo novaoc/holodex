@@ -1,13 +1,204 @@
 <template>
   <div class="dashboard">
-    <!-- Welcome / empty state -->
-    <div v-if="store.portfolios.length === 0" class="empty-state" style="padding:80px 20px">
-      <div class="icon">⬡</div>
-      <h3>Welcome to Holodex</h3>
-      <p>Track your Pokémon card collection across multiple portfolios with live pricing and charts.</p>
-      <div class="flex gap-3 mt-4" style="flex-wrap:wrap;justify-content:center">
-        <router-link to="/search" class="btn btn-primary btn-lg">Search Cards</router-link>
-      </div>
+    <!-- Landing page for new users -->
+    <div v-if="isNewUser" class="landing">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+          <div class="hero-icon">⬡</div>
+          <h1 class="hero-title">Holodex</h1>
+          <p class="hero-sub">Track your Pokémon TCG collection with live prices, portfolio charts, and cross-device sync. Free. Private. Runs in your browser.</p>
+          <div class="hero-actions">
+            <router-link to="/search" class="btn btn-primary btn-lg hero-cta">Get Started</router-link>
+            <button class="btn btn-secondary btn-lg" @click="scrollToFeatures">See Features</button>
+          </div>
+          <div class="hero-badges">
+            <span class="badge badge-accent">No Account</span>
+            <span class="badge badge-success">No Tracking</span>
+            <span class="badge badge-info">100% Free</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature sections -->
+      <section class="features" ref="featuresRef">
+        <!-- Collection Management -->
+        <div class="feature-section">
+          <div class="feature-header">
+            <span class="feature-icon">🃏</span>
+            <div>
+              <h2>Collection Management</h2>
+              <p class="feature-sub">Add cards, sealed products, and graded slabs to organized portfolios.</p>
+            </div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-card-icon">🔍</div>
+              <h3>Search Any Card</h3>
+              <p>Search across every Pokémon set ever printed. Live results with card images and current TCGPlayer market prices.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">📦</div>
+              <h3>Sealed Products</h3>
+              <p>Track booster boxes, ETBs, tins, and collection boxes. Prices fetched live from PriceCharting — no account needed.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">🏆</div>
+              <h3>Graded Slabs</h3>
+              <p>PSA, BGS, CGC, and ACE graded cards with grade-specific pricing. Update values manually or fetch from PriceCharting.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">📁</div>
+              <h3>Multiple Portfolios</h3>
+              <p>Organize your collection into named portfolios with custom colors. Separate investments from personal collection.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Browse & Pricing -->
+        <div class="feature-section">
+          <div class="feature-header">
+            <span class="feature-icon">📊</span>
+            <div>
+              <h2>Browse & Pricing</h2>
+              <p class="feature-sub">Every TCG set. Live market prices. Historical charts back to 2022.</p>
+            </div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-card-icon">📚</div>
+              <h3>Browse All Sets</h3>
+              <p>Browse every Pokémon TCG set with logos, card counts, and release dates. Click into any set to see the full card list.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">📈</div>
+              <h3>Price History Charts</h3>
+              <p>Interactive charts with 7D / 1M / 6M / 1Y / 3Y ranges. Card history goes back to November 2022 via TCGDex data.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">💰</div>
+              <h3>Portfolio Value Tracking</h3>
+              <p>See your total collection value, cost basis, and gain/loss across all portfolios. Charts update as prices change.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">🔔</div>
+              <h3>Price Alerts</h3>
+              <p>Set above or below thresholds on any card. Get browser notifications when prices cross your targets.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Import -->
+        <div class="feature-section">
+          <div class="feature-header">
+            <span class="feature-icon">⚡</span>
+            <div>
+              <h2>Bulk Import</h2>
+              <p class="feature-sub">Add entire decks or collections in seconds.</p>
+            </div>
+          </div>
+          <div class="feature-single">
+            <div class="feature-card feature-card-wide">
+              <div class="bulk-demo">
+                <div class="bulk-code">
+                  <div class="bulk-line">4 Charizard ex OBF 125</div>
+                  <div class="bulk-line">3 Pidgeot ex OBF 164</div>
+                  <div class="bulk-line">4 Arven SVI 166</div>
+                  <div class="bulk-line text-muted">...</div>
+                </div>
+                <div class="bulk-arrow">→</div>
+                <div class="bulk-result">
+                  <span class="text-accent font-bold">11 cards</span>
+                  <span class="text-muted">added instantly</span>
+                </div>
+              </div>
+              <p class="mt-3">Paste a PTCGL or PTCGO deck list. Each card is looked up automatically with current market prices. Preview before importing.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup & Transfer -->
+        <div class="feature-section">
+          <div class="feature-header">
+            <span class="feature-icon">📱</span>
+            <div>
+              <h2>Backup & Transfer</h2>
+              <p class="feature-sub">Your data, your devices, your control.</p>
+            </div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-card-icon">💾</div>
+              <h3>JSON Backup</h3>
+              <p>Download your entire collection as a single JSON file. Portfolios, items, snapshots, price cache — everything included.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">📲</div>
+              <h3>QR Code Transfer</h3>
+              <p>Transfer your collection to another device via QR code. Data is gzip-compressed to fit even large collections in a single code.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">📋</div>
+              <h3>Clipboard Transfer</h3>
+              <p>Copy your collection to clipboard and paste it on any device. Compressed base64 — works across browsers and operating systems.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">📊</div>
+              <h3>Excel Export</h3>
+              <p>Export individual portfolios or all portfolios to Excel. Summary sheet plus full item details with prices and gain/loss.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Privacy -->
+        <div class="feature-section">
+          <div class="feature-header">
+            <span class="feature-icon">🔒</span>
+            <div>
+              <h2>Private by Design</h2>
+              <p class="feature-sub">No accounts. No tracking. No servers. Everything runs in your browser.</p>
+            </div>
+          </div>
+          <div class="privacy-grid">
+            <div class="privacy-item">
+              <span class="privacy-check">✓</span>
+              <div>
+                <strong>Local Storage Only</strong>
+                <p>All data stays in your browser's localStorage. Nothing is sent to any server.</p>
+              </div>
+            </div>
+            <div class="privacy-item">
+              <span class="privacy-check">✓</span>
+              <div>
+                <strong>Direct API Fetches</strong>
+                <p>Price data comes directly from public APIs (pokemontcg.io, PriceCharting) — your browser is the client.</p>
+              </div>
+            </div>
+            <div class="privacy-item">
+              <span class="privacy-check">✓</span>
+              <div>
+                <strong>No Login Required</strong>
+                <p>Open the app and start tracking. No email, no password, no account creation.</p>
+              </div>
+            </div>
+            <div class="privacy-item">
+              <span class="privacy-check">✓</span>
+              <div>
+                <strong>Open Source</strong>
+                <p>MIT licensed. Inspect the code, fork it, run it yourself.<br><a href="https://github.com/novaoc/holodex" target="_blank" rel="noopener">View on GitHub →</a></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Final CTA -->
+      <section class="final-cta">
+        <h2>Ready to track your collection?</h2>
+        <p>No signup. No download. Start adding cards right now.</p>
+        <router-link to="/search" class="btn btn-primary btn-lg hero-cta">Get Started — It's Free</router-link>
+      </section>
     </div>
 
     <div v-else>
@@ -106,12 +297,22 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { usePortfolioStore } from '../stores/portfolio'
 import { getCard, getMarketPrice } from '../services/pokemonApi'
 import PortfolioChart from '../components/PortfolioChart.vue'
 
 const store = usePortfolioStore()
+const featuresRef = ref(null)
+
+// New user = every portfolio has 0 items (store auto-creates one empty portfolio on init)
+const isNewUser = computed(() => {
+  return store.portfolios.every(p => p.items.length === 0)
+})
+
+function scrollToFeatures() {
+  featuresRef.value?.scrollIntoView({ behavior: 'smooth' })
+}
 
 const totalGain = computed(() => store.totalPortfolioValue - store.totalCostBasis)
 const totalGainPct = computed(() => store.totalCostBasis > 0 ? (totalGain.value / store.totalCostBasis) * 100 : 0)
@@ -159,6 +360,249 @@ onMounted(async () => {
 
 <style scoped>
 .dashboard { max-width: 1200px; margin: 0 auto; }
+
+/* ── Landing Page ── */
+.landing {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Hero */
+.hero {
+  position: relative;
+  text-align: center;
+  padding: 80px 0 60px;
+  overflow: hidden;
+}
+.hero-glow {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-content { position: relative; z-index: 1; }
+.hero-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  display: inline-block;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.hero-title {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--accent), #ffcc70);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font-size: 17px;
+  color: var(--text-secondary);
+  max-width: 540px;
+  margin: 0 auto 28px;
+  line-height: 1.7;
+}
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.hero-cta {
+  font-size: 15px;
+  padding: 12px 28px;
+  font-weight: 600;
+}
+.hero-badges {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* Feature sections */
+.features {
+  padding: 40px 0;
+}
+.feature-section {
+  margin-bottom: 56px;
+}
+.feature-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.feature-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.feature-header h2 {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.feature-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Feature grid — 2x2 cards */
+.feature-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.feature-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  transition: border-color 0.2s;
+}
+.feature-card:hover {
+  border-color: var(--accent);
+}
+.feature-card-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+.feature-card h3 {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.feature-card p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Bulk import demo */
+.feature-single { max-width: 100%; }
+.feature-card-wide { max-width: 100%; }
+.bulk-demo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.bulk-code {
+  flex: 1;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.bulk-line { color: var(--text-primary); }
+.bulk-arrow {
+  font-size: 20px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.bulk-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Privacy section */
+.privacy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.privacy-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+}
+.privacy-check {
+  color: var(--success);
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.privacy-item strong {
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+}
+.privacy-item p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Final CTA */
+.final-cta {
+  text-align: center;
+  padding: 60px 0 80px;
+  border-top: 1px solid var(--border);
+}
+.final-cta h2 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.final-cta p {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+/* Landing mobile */
+@media (max-width: 768px) {
+  .landing { padding: 0 16px; }
+  .hero { padding: 60px 0 40px; }
+  .hero-title { font-size: 36px; }
+  .hero-sub { font-size: 15px; }
+  .hero-icon { font-size: 44px; }
+  .feature-header h2 { font-size: 20px; }
+  .final-cta h2 { font-size: 22px; }
+}
+
+@media (max-width: 640px) {
+  .hero { padding: 48px 0 32px; }
+  .hero-title { font-size: 30px; }
+  .hero-sub { font-size: 14px; }
+  .hero-icon { font-size: 40px; }
+  .hero-cta { width: 100%; justify-content: center; }
+  .feature-grid { grid-template-columns: 1fr; }
+  .privacy-grid { grid-template-columns: 1fr; }
+  .feature-section { margin-bottom: 40px; }
+  .bulk-demo { flex-direction: column; text-align: center; }
+  .bulk-arrow { transform: rotate(90deg); }
+  .feature-header { flex-direction: column; gap: 8px; }
+  .final-cta { padding: 40px 0 60px; }
+}
+
+/* ── Existing Dashboard ── */
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
 
 .portfolios-grid {

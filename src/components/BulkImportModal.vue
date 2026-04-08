@@ -443,4 +443,18 @@ tr.excluded {
   font-size: 13px;
   cursor: pointer;
 }
+
+/* Mobile — bottom sheet */
+@media (max-width: 640px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .bulk-modal {
+    max-height: 95vh;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .import-options { flex-direction: column; gap: 12px; }
+  .radio-row { flex-direction: column; gap: 8px; }
+  .preview-table-wrap { max-height: 260px; }
+}
 </style>

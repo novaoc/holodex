@@ -428,4 +428,21 @@ watch(() => props.card, () => {
 .sealed-selected-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 2px; }
 .sealed-selected-name { font-size: 14px; font-weight: 600; }
 .sealed-selected-set { font-size: 12px; color: var(--text-secondary); }
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    max-height: 92vh;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .modal-body { padding: 16px; overflow-y: auto; }
+  .type-tab { font-size: 12px; padding: 8px 6px; gap: 4px; }
+  .card-preview { flex-direction: column; text-align: center; gap: 8px; }
+  .form-row { flex-direction: column; gap: 0; }
+  .sealed-result { flex-wrap: wrap; }
+  .sealed-result-price { margin-left: 0; }
+}
 </style>

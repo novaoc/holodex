@@ -364,6 +364,15 @@ function onAdded() {
 }
 .card-result:hover .card-overlay { opacity: 1; }
 
+/* Touch devices: show overlay always at reduced opacity */
+@media (hover: none) {
+  .card-overlay {
+    opacity: 1;
+    background: rgba(0,0,0,0.5);
+  }
+  .card-overlay .btn { font-size: 12px; padding: 6px 12px; }
+}
+
 .card-meta { padding: 10px; }
 .card-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-set-info { font-size: 10px; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

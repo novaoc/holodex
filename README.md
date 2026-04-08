@@ -37,11 +37,28 @@ Built by [Nova](https://github.com/novaoc).
 - Transfer to device — gzip-compressed QR code or clipboard copy/paste for moving collections between devices
 - Stale data cleanup — deleted cards don't linger in snapshots or backups
 
+### Landing Page
+- Shown to new users (no items saved) — existing users go straight to the dashboard
+- Hero section with gradient title, feature badges, and CTA
+- Feature sections: Collection Management, Browse & Pricing, Bulk Import, Backup & Transfer, Private by Design
+- Bulk import demo with code snippet visualization
+- Privacy checklist: local storage, direct API fetches, no login, open source
+- Final CTA at the bottom
+- Detection: `store.portfolios.every(p => p.items.length === 0)` — store auto-creates one empty portfolio on init, so new users have portfolios but zero items
+
+### Mobile
+- Touch-friendly card grids — overlay buttons (Add/Details) always visible on touch devices via `hover: none` media query
+- Bottom sheet panels — card detail panels slide up from bottom on mobile (Search, Sets, Portfolio views) with drag handle and rounded corners
+- Bottom sheet modals — AddItem and BulkImport modals are full-width bottom sheets on mobile
+- Stacked portfolio header — title, stats, and action buttons reflow for small screens
+- Responsive charts — controls scroll horizontally, price stats wrap to grid, tighter vertical spacing
+- Column hiding — portfolio table hides Type and Actions columns on tablet, gain% on small phones
+- Landing page responsive: feature grids go single-column, bulk demo stacks vertically, CTAs go full-width
+
 ### Data & Privacy
 - All data stored locally in your browser (localStorage)
 - No accounts, no tracking, no server — everything runs client-side
 - Price data fetched directly from public APIs in the browser
-- Responsive design — works on desktop and mobile
 - Price alerts — set thresholds on cards, get browser notifications when prices cross them
 
 ## Stack

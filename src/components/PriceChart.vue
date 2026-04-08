@@ -278,4 +278,13 @@ onMounted(load)
 .price-stat:last-child { border-right: none; }
 .stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 3px; }
 .stat-val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .chart-header { flex-direction: column; align-items: flex-start; }
+  .chart-controls { overflow-x: auto; width: 100%; }
+  .price-stats { flex-wrap: wrap; }
+  .price-stat { min-width: 25%; }
+  .stat-val { font-size: 12px; }
+}
 </style>

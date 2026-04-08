@@ -406,6 +406,12 @@ onMounted(loadSets)
   gap: 6px; opacity: 0; transition: opacity 0.2s;
 }
 .card-result:hover .card-overlay { opacity: 1; }
+
+/* Touch devices: show overlay always */
+@media (hover: none) {
+  .card-overlay { opacity: 1; background: rgba(0,0,0,0.5); }
+  .card-overlay .btn { font-size: 12px; padding: 6px 12px; }
+}
 .card-meta { padding: 10px; }
 .card-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-price-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; }
@@ -445,9 +451,34 @@ onMounted(loadSets)
 
 @media (max-width: 768px) {
   .set-browse-header { gap: 10px; }
-  .card-detail-panel { left: 0; }
-  .panel-top { flex-direction: column; }
-  .panel-card-img { width: 100px; min-width: 100px; }
+  .set-browse-title { font-size: 15px; }
+  .set-browse-filters { width: 100%; }
+  .set-browse-filters .input { flex: 1; width: auto !important; }
+  .card-detail-panel {
+    left: 0;
+    max-height: 85vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .card-detail-panel::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 8px auto 4px;
+  }
+  .panel-top { flex-direction: column; align-items: center; }
+  .panel-card-img { width: 160px; min-width: 160px; }
+  .panel-body { padding: 12px 16px; }
+  .panel-header { padding: 12px 16px; }
   .sets-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 480px) {
+  .card-detail-panel { max-height: 90vh; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .card-meta { padding: 8px; }
+  .card-name { font-size: 11px; }
 }
 </style>
