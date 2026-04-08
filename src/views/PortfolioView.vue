@@ -122,12 +122,14 @@
                     :src="item.cardData.images.small"
                     class="item-thumb"
                     loading="lazy"
+                    draggable="false"
                   />
                   <img
                     v-else-if="item.imageUrl"
                     :src="item.imageUrl"
                     class="item-thumb item-thumb-sealed"
                     loading="lazy"
+                    draggable="false"
                   />
                   <div class="item-sealed-icon" v-else>📦</div>
                   <div>
@@ -174,7 +176,7 @@
         </div>
         <div class="panel-body-row">
           <div class="panel-left" v-if="selectedItem.cardData?.images?.small || selectedItem.imageUrl">
-            <img :src="selectedItem.cardData?.images?.large || selectedItem.cardData?.images?.small || selectedItem.imageUrl" class="panel-img" />
+            <img :src="selectedItem.cardData?.images?.large || selectedItem.cardData?.images?.small || selectedItem.imageUrl" class="panel-img" draggable="false" />
           </div>
           <div class="panel-right">
             <div class="panel-info-grid">

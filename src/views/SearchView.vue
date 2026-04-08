@@ -51,6 +51,7 @@
               :alt="card.name"
               loading="lazy"
               class="card-img"
+              draggable="false"
             />
             <div class="card-overlay">
               <button class="btn btn-primary btn-sm" @click.stop="openAddModal(card)">
@@ -90,7 +91,7 @@
         </div>
         <div class="panel-body">
           <div class="panel-top">
-            <img :src="selectedCard.images?.large || selectedCard.images?.small" class="panel-card-img" />
+            <img :src="selectedCard.images?.large || selectedCard.images?.small" class="panel-card-img" draggable="false" />
             <div class="panel-card-info">
               <div class="panel-card-set">{{ selectedCard.set?.name }} · #{{ selectedCard.number }}</div>
               <div class="panel-card-rarity">{{ selectedCard.rarity }}</div>

@@ -318,6 +318,7 @@
                 :key="item.id"
                 :src="item.cardData.images.small"
                 class="mini-card-img"
+                draggable="false"
               />
               <span v-if="portfolio.items.length > 4" class="mini-more">+{{ portfolio.items.length - 4 }}</span>
             </div>

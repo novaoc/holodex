@@ -49,6 +49,7 @@
                 class="set-logo"
                 loading="lazy"
                 decoding="async"
+                draggable="false"
                 @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display=''"
               />
               <span class="set-logo-placeholder" :class="{ 'set-logo-jp': set._lang === 'ja' }" :style="set.images?.logo ? 'display:none' : ''">
@@ -75,7 +76,7 @@
               </div>
             </div>
             <div class="set-symbol-wrap" v-if="set.images?.symbol">
-              <img :src="set.images.symbol" :alt="set.name + ' symbol'" class="set-symbol" />
+              <img :src="set.images.symbol" :alt="set.name + ' symbol'" class="set-symbol" draggable="false" />
             </div>
           </div>
         </div>
@@ -87,7 +88,7 @@
       <div class="set-browse-header mb-4">
         <button class="btn btn-secondary btn-sm" @click="closeSet">← All Sets</button>
         <div class="set-browse-title">
-          <img v-if="selectedSet.images?.symbol" :src="selectedSet.images.symbol" class="browse-symbol" />
+          <img v-if="selectedSet.images?.symbol" :src="selectedSet.images.symbol" class="browse-symbol" draggable="false" />
           <span>{{ selectedSet.name }}</span>
           <span class="badge badge-accent ml-2">{{ selectedSet.total }} cards</span>
         </div>
@@ -131,6 +132,7 @@
                 :alt="card.name"
                 loading="lazy"
                 class="card-img"
+                draggable="false"
                 @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display='flex'"
               />
               <div class="card-img-placeholder" :style="card.images?.small ? 'display:none' : ''">
@@ -171,7 +173,7 @@
         </div>
         <div class="panel-body">
           <div class="panel-top">
-            <img v-if="selectedCard.images?.large || selectedCard.images?.small" :src="selectedCard.images?.large || selectedCard.images?.small" class="panel-card-img" @error="$event.target.style.display='none'" />
+            <img v-if="selectedCard.images?.large || selectedCard.images?.small" :src="selectedCard.images?.large || selectedCard.images?.small" class="panel-card-img" draggable="false" @error="$event.target.style.display='none'" />
             <div v-else class="panel-card-img-placeholder">
               <span>{{ selectedCard.name }}</span>
               <span style="font-size:12px;color:var(--text-muted)">#{{ selectedCard.number }}</span>
@@ -284,6 +286,7 @@
                 :alt="card.name"
                 class="bulk-card-img"
                 loading="lazy"
+                draggable="false"
               />
               <div class="bulk-card-info">
                 <div class="bulk-card-name">{{ card.name }}</div>
