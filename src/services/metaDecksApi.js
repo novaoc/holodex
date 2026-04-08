@@ -1,55 +1,9 @@
-// Fetches live meta deck data from our own serverless endpoint (scrapes Limitless TCG)
-// Caches in localStorage for 24 hours
-// Falls back to hardcoded decks if fetch fails
-
-import { getMarketPrice } from './pokemonApi'
+// Fetches live meta deck data from our serverless endpoint
+// Server does all the scraping + card resolution
+// Client just caches the result for 24h
 
 const CACHE_KEY = 'holodex_meta_decks_cache'
 const CACHE_TTL = 1000 * 60 * 60 * 24 // 24 hours
-const BASE_URL = 'https://api.pokemontcg.io/v2'
-
-// Map Limitless set codes (ptcgo codes) to pokemontcg.io set IDs
-const SET_CODE_MAP = {
-  SVI: 'sv1', PAL: 'sv2', OBF: 'sv3', PAF: 'sv4pt5', PAR: 'sv4',
-  TEF: 'sv5', TWM: 'sv6', SFA: 'sv6pt5', SCR: 'sv7', SSP: 'sv8',
-  PRE: 'sv8pt5', JTG: 'sv9', DRI: 'sv10',
-  MEG: 'me1', ASC: 'me2pt5',
-  // Older sets
-  BRS: 'swsh9', FST: 'swsh8', EVS: 'swsh7', CRE: 'swsh6', BST: 'swsh5',
-  DAA: 'swsh3', RCL: 'swsh2', SSH: 'swsh1', CEL: 'cel25', CRZ: 'swsh12pt5',
-}
-
-// Fetch a specific card by set code + number
-async function fetchCardBySetNumber(limitlessCode, number) {
-  const setCode = SET_CODE_MAP[limitlessCode] || limitlessCode.toLowerCase()
-  const url = `${BASE_URL}/cards?q=set.id:${setCode}+number:${number}&pageSize=1`
-  const res = await fetch(url)
-  if (!res.ok) return null
-  const data = await res.json()
-  return data?.data?.[0] || null
-}
-
-// Resolve a card template (setCode + number) to a full card with price
-async function resolveCard(cardTemplate) {
-  try {
-    const card = await fetchCardBySetNumber(cardTemplate.setCode, cardTemplate.number)
-    if (!card) return null
-
-    const priceResult = getMarketPrice(card)
-    return {
-      cardId: card.id,
-      name: card.name,
-      setName: card.set?.name || '',
-      setCode: card.set?.id || cardTemplate.setCode,
-      number: card.number || cardTemplate.number,
-      quantity: cardTemplate.quantity,
-      price: priceResult?.price || null,
-      image: card.images?.small || '',
-    }
-  } catch {
-    return null
-  }
-}
 
 export async function fetchLiveMetaDecks() {
   // Check cache first
@@ -60,47 +14,20 @@ export async function fetchLiveMetaDecks() {
     }
   } catch {}
 
-  // Fetch from our serverless endpoint
+  // Server returns fully resolved decks (cards already have IDs, prices, images)
   const res = await fetch('/api/meta-decks')
   if (!res.ok) throw new Error(`Meta decks API returned ${res.status}`)
 
   const data = await res.json()
   if (!data.decks?.length) throw new Error('No decks returned')
 
-  // Resolve cards by set+number — much more accurate than name matching
-  const resolvedDecks = []
+  // Cards are already resolved server-side — just cache and return
+  localStorage.setItem(CACHE_KEY, JSON.stringify({
+    timestamp: Date.now(),
+    decks: data.decks,
+  }))
 
-  for (const deck of data.decks) {
-    try {
-      const resolved = await Promise.allSettled(
-        deck.cards.map(c => resolveCard(c))
-      )
-
-      const cards = resolved
-        .filter(r => r.status === 'fulfilled' && r.value)
-        .map(r => r.value)
-
-      if (cards.length > 0) {
-        resolvedDecks.push({
-          name: deck.name,
-          archetype: deck.archetype || deck.name,
-          description: deck.description || '',
-          cards,
-          meta: deck.meta,
-        })
-      }
-    } catch {}
-  }
-
-  if (resolvedDecks.length > 0) {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      timestamp: Date.now(),
-      decks: resolvedDecks,
-    }))
-    return resolvedDecks
-  }
-
-  throw new Error('No decks resolved')
+  return data.decks
 }
 
 // Fallback hardcoded decks — only used when live fetch completely fails
