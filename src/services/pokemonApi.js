@@ -16,8 +16,8 @@ async function fetchWithCache(url) {
 }
 
 export async function searchCards(query, page = 1, pageSize = 20) {
-  // Quote multi-word queries so Lucene treats them as a single phrase
-  const term = query.includes(' ') ? `"${query}"` : query
+  // Replace spaces with * wildcards so "mega charizard" → "mega*charizard"
+  const term = query.replace(/\s+/g, '*')
   const encoded = encodeURIComponent(term)
   const url = `${BASE_URL}/cards?q=name:${encoded}*&page=${page}&pageSize=${pageSize}&orderBy=-set.releaseDate`
   const data = await fetchWithCache(url)
