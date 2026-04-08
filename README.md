@@ -34,6 +34,8 @@ Built by [Nova](https://github.com/novaoc).
 - Export individual portfolios to Excel (summary + items sheets)
 - Export all portfolios to a single Excel file
 - Backup entire collection as JSON — download and restore on any device
+- Transfer to device — gzip-compressed QR code or clipboard copy/paste for moving collections between devices
+- Stale data cleanup — deleted cards don't linger in snapshots or backups
 
 ### Data & Privacy
 - All data stored locally in your browser (localStorage)
