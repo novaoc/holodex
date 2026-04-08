@@ -1,4 +1,4 @@
-# Collectr
+# Holodex
 
 Track your Pokemon TCG collection — cards, sealed products, and graded slabs — with live prices and portfolio charts.
 
