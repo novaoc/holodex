@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-const STORAGE_KEY = 'collectr_portfolios'
-const SETTINGS_KEY = 'collectr_settings'
+const STORAGE_KEY = 'holodex_portfolios'
+const SETTINGS_KEY = 'holodex_settings'
 
 function generateId() {
   return crypto.randomUUID()

@@ -3,7 +3,7 @@
     <!-- Welcome / empty state -->
     <div v-if="store.portfolios.length === 0" class="empty-state" style="padding:80px 20px">
       <div class="icon">⬡</div>
-      <h3>Welcome to Collectr</h3>
+      <h3>Welcome to Holodex</h3>
       <p>Track your Pokémon card collection across multiple portfolios with live pricing and charts.</p>
       <div class="flex gap-3 mt-4" style="flex-wrap:wrap;justify-content:center">
         <router-link to="/search" class="btn btn-primary btn-lg">Search Cards</router-link>

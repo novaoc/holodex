@@ -3,7 +3,7 @@
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-logo">
         <span class="logo-icon">⬡</span>
-        <span class="logo-text">Collectr</span>
+        <span class="logo-text">Holodex</span>
         <button class="btn btn-ghost btn-icon sidebar-close" @click="sidebarOpen = false">✕</button>
       </div>
 
@@ -127,7 +127,7 @@ const currentPageTitle = computed(() => {
     const p = store.portfolios.find(p => p.id === route.params.id)
     return p?.name || 'Portfolio'
   }
-  return 'Collectr'
+  return 'Holodex'
 })
 
 function createPortfolio() {
