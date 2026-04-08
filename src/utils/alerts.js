@@ -1,12 +1,12 @@
 /**
- * Price Alerts for Holodex
+ * Price Alerts for Rarebox
  *
  * Users can set alerts on cards: "notify me when price goes above/below $X".
  * Alerts are stored in localStorage. Checked on price refresh.
  * Uses browser Notification API for alerts.
  */
 
-const STORAGE_KEY = 'holodex_alerts'
+const STORAGE_KEY = 'rarebox_alerts'
 
 function load() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [] }
@@ -122,7 +122,7 @@ export function notifyTriggered(alerts) {
   for (const alert of alerts) {
     const direction = alert.condition === 'above' ? 'above' : 'below'
     const price = alert.triggeredPrice?.toFixed(2) || '?'
-    new Notification('Holodex Price Alert', {
+    new Notification('Rarebox Price Alert', {
       body: `${alert.cardName} is now $${price} (${direction} $${alert.threshold.toFixed(2)})`,
       icon: '/favicon.ico',
       tag: alert.id, // prevent duplicates

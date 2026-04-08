@@ -9,7 +9,7 @@
       <section>
         <h2>1. Acceptance of Terms</h2>
         <p>
-          By accessing and using Holodex ("the Service"), you agree to be bound by these
+          By accessing and using Rarebox ("the Service"), you agree to be bound by these
           Terms &amp; Conditions. If you do not agree, do not use the Service.
         </p>
       </section>
@@ -17,7 +17,7 @@
       <section>
         <h2>2. Description of Service</h2>
         <p>
-          Holodex is a free, client-side Pokémon TCG portfolio tracker. It allows you to
+          Rarebox is a free, client-side Pokémon TCG portfolio tracker. It allows you to
           track your card collection, monitor market values, build decks, browse sets,
           and view price history charts. The Service processes all data locally in your
           browser — there are no user accounts, no server-side storage, and no backend
@@ -27,7 +27,7 @@
 
       <section>
         <h2>3. How It Works</h2>
-        <p>Holodex is a Progressive Web App (PWA) that runs entirely in your browser:</p>
+        <p>Rarebox is a Progressive Web App (PWA) that runs entirely in your browser:</p>
         <ul>
           <li><strong>Portfolio tracking</strong> — your portfolios, items, notes, and
             daily price snapshots are stored in your browser's localStorage and never
@@ -58,7 +58,7 @@
       <section>
         <h2>5. Not a Financial Advisor</h2>
         <p>
-          Holodex is not a financial product, investment platform, or trading service.
+          Rarebox is not a financial product, investment platform, or trading service.
           We do not provide financial advice, tax guidance, or investment recommendations.
           Card values fluctuate and past performance does not indicate future results.
           You are solely responsible for any buying, selling, or trading decisions.
@@ -68,7 +68,7 @@
       <section>
         <h2>6. Not an E-Commerce Platform</h2>
         <p>
-          Holodex does not facilitate buying, selling, or trading of Pokémon cards.
+          Rarebox does not facilitate buying, selling, or trading of Pokémon cards.
           We do not process payments, handle transactions, or connect buyers with sellers.
           Any trading or purchasing activity you engage in as a result of information
           found on the Service is entirely at your own risk.
@@ -102,7 +102,7 @@
           All portfolio data, deck data, settings, price snapshots, and preferences
           are stored exclusively in your browser's localStorage. This data never leaves
           your device unless you explicitly export it or configure cross-device sync.
-          Clearing your browser data will permanently delete all your Holodex data.
+          Clearing your browser data will permanently delete all your Rarebox data.
           We cannot recover it.
         </p>
       </section>
@@ -110,7 +110,7 @@
       <section>
         <h2>9. Limitation of Liability</h2>
         <p>
-          To the fullest extent permitted by law, Holodex and its developer(s) shall
+          To the fullest extent permitted by law, Rarebox and its developer(s) shall
           not be liable for any direct, indirect, incidental, special, consequential,
           or punitive damages arising from your use of the Service, including but not
           limited to:
@@ -147,7 +147,7 @@
       <section>
         <h2>12. Age Restriction</h2>
         <p>
-          Holodex is not directed at children under the age of 13. The Service involves
+          Rarebox is not directed at children under the age of 13. The Service involves
           financial concepts (market values, portfolio tracking, price history) that are
           intended for users aged 13 and older. By using the Service, you confirm you
           are at least 13 years of age. If you are under 13, do not use the Service.
@@ -158,7 +158,7 @@
         <h2>13. Intellectual Property</h2>
         <p>
           Pokémon and Pokémon character names are trademarks of Nintendo, The Pokémon
-          Company, and/or Game Freak. Holodex is not affiliated with, endorsed by, or
+          Company, and/or Game Freak. Rarebox is not affiliated with, endorsed by, or
           sponsored by any of these entities. Card images and data are sourced from
           third-party APIs and are the property of their respective owners.
         </p>
@@ -167,7 +167,7 @@
       <section>
         <h2>14. Indemnification</h2>
         <p>
-          You agree to indemnify and hold harmless Holodex and its developer(s) from
+          You agree to indemnify and hold harmless Rarebox and its developer(s) from
           any claims, damages, losses, or expenses arising from your use of the Service
           or violation of these Terms.
         </p>
@@ -198,7 +198,7 @@
       <section>
         <h2>1. Overview</h2>
         <p>
-          Holodex is a fully client-side application. It has no backend server, no
+          Rarebox is a fully client-side application. It has no backend server, no
           database, and no user accounts. All data processing happens locally in your
           browser.
         </p>
@@ -207,7 +207,7 @@
       <section>
         <h2>2. Data We Collect</h2>
         <p>
-          <strong>We do not collect any personal data.</strong> Holodex has no server,
+          <strong>We do not collect any personal data.</strong> Rarebox has no server,
           no user accounts, and no login systems. There are no cookies set by the
           application itself. However, we do use Vercel Analytics and Speed Insights for
           anonymized usage metrics — see Section 6 for details.
@@ -216,7 +216,7 @@
 
       <section>
         <h2>3. Local Storage</h2>
-        <p>Holodex uses your browser's localStorage to save:</p>
+        <p>Rarebox uses your browser's localStorage to save:</p>
         <ul>
           <li><strong>Portfolios</strong> — your card collections, quantities, purchase
             prices, notes, and daily price snapshots</li>
@@ -238,7 +238,7 @@
         <p>
           If you configure cross-device sync, your portfolio data is transmitted
           directly from your browser to jsonbin.io using an API key you provide.
-          Holodex does not intermediate, log, or store this data. jsonbin.io's
+          Rarebox does not intermediate, log, or store this data. jsonbin.io's
           privacy policy governs how they handle your data.
         </p>
       </section>
@@ -260,7 +260,7 @@
       <section>
         <h2>6. Analytics &amp; Performance Monitoring</h2>
         <p>
-          Holodex uses <strong>Vercel Analytics</strong> and <strong>Vercel Speed
+          Rarebox uses <strong>Vercel Analytics</strong> and <strong>Vercel Speed
           Insights</strong> to understand how the site is used and to monitor
           performance. These are privacy-focused tools provided by our hosting
           provider. The data collected includes:

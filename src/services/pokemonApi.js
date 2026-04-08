@@ -66,8 +66,8 @@ export async function getCard(id) {
 
 export async function getSets() {
   // Persist sets to localStorage — they rarely change
-  const LS_KEY = 'holodex_en_sets'
-  const LS_TS = 'holodex_en_sets_ts'
+  const LS_KEY = 'rarebox_en_sets'
+  const LS_TS = 'rarebox_en_sets_ts'
   const cached = localStorage.getItem(LS_KEY)
   const ts = localStorage.getItem(LS_TS)
   if (cached && ts && Date.now() - Number(ts) < 24 * 60 * 60 * 1000) {
@@ -248,8 +248,8 @@ function sortJapaneseSets(sets) {
 
 export async function getJapaneseSets() {
   // Persist to localStorage — JP sets rarely change
-  const LS_KEY = 'holodex_ja_sets'
-  const LS_TS = 'holodex_ja_sets_ts'
+  const LS_KEY = 'rarebox_ja_sets'
+  const LS_TS = 'rarebox_ja_sets_ts'
   const cached = localStorage.getItem(LS_KEY)
   const ts = localStorage.getItem(LS_TS)
   if (cached && ts && Date.now() - Number(ts) < 24 * 60 * 60 * 1000) {

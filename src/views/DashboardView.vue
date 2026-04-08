@@ -7,7 +7,7 @@
         <div class="hero-glow"></div>
         <div class="hero-content">
           <div class="hero-icon">⬡</div>
-          <h1 class="hero-title">Holodex</h1>
+          <h1 class="hero-title">Rarebox</h1>
           <p class="hero-sub">Track your Pokémon TCG collection with live prices, portfolio charts, and deck building tools. Compare meta decks against your collection. Free. Private. Runs in your browser.</p>
           <div class="hero-actions">
             <router-link to="/search" class="btn btn-primary btn-lg hero-cta">Get Started</router-link>
@@ -219,7 +219,7 @@
               <span class="privacy-check">✓</span>
               <div>
                 <strong>Open Source</strong>
-                <p>MIT licensed. Inspect the code, fork it, run it yourself.<br><a href="https://github.com/novaoc/holodex" target="_blank" rel="noopener">View on GitHub →</a></p>
+                <p>MIT licensed. Inspect the code, fork it, run it yourself.<br><a href="https://github.com/novaoc/rarebox" target="_blank" rel="noopener">View on GitHub →</a></p>
               </div>
             </div>
           </div>

@@ -1,4 +1,4 @@
-// Holodex Price Service — PriceCharting JSON API, runs directly in the browser.
+// Rarebox Price Service — PriceCharting JSON API, runs directly in the browser.
 // No backend, no API key. CORS is fully open on PriceCharting's search endpoint.
 //
 // Price fields from the API:

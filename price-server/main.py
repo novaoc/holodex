@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Holodex Price Server
+Rarebox Price Server
 Scrapes PriceCharting.com (public pages, no API key) for Pokemon card,
 graded slab, and sealed product prices.
 
@@ -32,7 +32,7 @@ except ImportError:
     import httpx
     USE_CFFI = False
 
-app = FastAPI(title="Holodex Price Server", version="2.0")
+app = FastAPI(title="Rarebox Price Server", version="2.0")
 
 app.add_middleware(
     CORSMiddleware,

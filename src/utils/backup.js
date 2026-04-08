@@ -1,14 +1,14 @@
 const STORAGE_KEYS = {
-  portfolios: 'holodex_portfolios',
-  settings: 'holodex_settings',
-  snapshots: 'holodex_snapshots',
+  portfolios: 'rarebox_portfolios',
+  settings: 'rarebox_settings',
+  snapshots: 'rarebox_snapshots',
 }
 
 export function exportBackup() {
   const backup = {
     version: 1,
     exportedAt: new Date().toISOString(),
-    app: 'holodex',
+    app: 'rarebox',
     data: {},
   }
 
@@ -38,14 +38,14 @@ export function exportBackup() {
   const a = document.createElement('a')
   const date = new Date().toISOString().split('T')[0]
   a.href = url
-  a.download = `holodex-backup-${date}.json`
+  a.download = `rarebox-backup-${date}.json`
   a.click()
   URL.revokeObjectURL(url)
 }
 
 export function validateBackup(data) {
   if (!data || typeof data !== 'object') return 'Invalid backup file'
-  if (data.app !== 'holodex') return 'Not a Holodex backup file'
+  if (data.app !== 'rarebox') return 'Not a Rarebox backup file'
   if (!data.data || typeof data.data !== 'object') return 'Backup has no data'
 
   const hasPortfolios = data.data.portfolios
@@ -62,7 +62,7 @@ export function validateBackup(data) {
 /**
  * Restore a backup into localStorage and reload the page.
  *
- * This replaces ALL holodex data atomically:
+ * This replaces ALL rarebox data atomically:
  * - Clears existing portfolios, settings, snapshots, and price caches
  * - Writes the backup data
  * - Reloads so the Pinia store reinitializes cleanly
@@ -73,7 +73,7 @@ export function validateBackup(data) {
 export function importBackup(data) {
   const result = { portfolios: 0, snapshots: 0, caches: 0 }
 
-  // 1. Clear all existing holodex data
+  // 1. Clear all existing rarebox data
   for (const key of Object.values(STORAGE_KEYS)) {
     localStorage.removeItem(key)
   }

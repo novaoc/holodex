@@ -217,7 +217,7 @@ function parseDeckList(text) {
 
 async function lookupCard(entry) {
   const BASE = 'https://api.pokemontcg.io/v2/cards'
-  const cache = window.__holodex_lookup_cache__ || (window.__holodex_lookup_cache__ = new Map())
+  const cache = window.__rarebox_lookup_cache__ || (window.__rarebox_lookup_cache__ = new Map())
 
   let q
   if (entry.setCode && entry.number) {

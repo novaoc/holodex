@@ -135,8 +135,8 @@ async function decompressFromBase64(b64) {
 
 // Build backup data WITHOUT triggering download (exportBackup creates a file download)
 function buildBackupData() {
-  const payload = { version: 1, exportedAt: new Date().toISOString(), app: 'holodex', data: {} }
-  const keys = { portfolios: 'holodex_portfolios', settings: 'holodex_settings', snapshots: 'holodex_snapshots' }
+  const payload = { version: 1, exportedAt: new Date().toISOString(), app: 'rarebox', data: {} }
+  const keys = { portfolios: 'rarebox_portfolios', settings: 'rarebox_settings', snapshots: 'rarebox_snapshots' }
   for (const [label, key] of Object.entries(keys)) {
     const raw = localStorage.getItem(key)
     if (raw) try { payload.data[label] = JSON.parse(raw) } catch { payload.data[label] = raw }

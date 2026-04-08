@@ -3,7 +3,7 @@
     <aside class="sidebar" :class="{ open: sidebarOpen }">
       <div class="sidebar-logo">
         <span class="logo-icon">⬡</span>
-        <span class="logo-text">Holodex</span>
+        <span class="logo-text">Rarebox</span>
         <button class="btn btn-ghost btn-icon sidebar-close" @click="sidebarOpen = false">✕</button>
       </div>
 
@@ -69,7 +69,7 @@
         <div class="app-footer">
           <router-link to="/terms" class="app-footer-link">Terms &amp; Conditions</router-link>
           <span class="app-footer-dot">·</span>
-          <a href="https://github.com/novaoc/holodex" target="_blank" rel="noopener" class="app-footer-link">GitHub</a>
+          <a href="https://github.com/novaoc/rarebox" target="_blank" rel="noopener" class="app-footer-link">GitHub</a>
         </div>
       </main>
     </div>
@@ -143,7 +143,7 @@ const currentPageTitle = computed(() => {
     const p = store.portfolios.find(p => p.id === route.params.id)
     return p?.name || 'Portfolio'
   }
-  return 'Holodex'
+  return 'Rarebox'
 })
 
 function createPortfolio() {

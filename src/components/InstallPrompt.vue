@@ -4,7 +4,7 @@
       <div class="install-content">
         <div class="install-icon">⬡</div>
         <div class="install-text">
-          <div class="install-title">Install Holodex</div>
+          <div class="install-title">Install Rarebox</div>
           <div class="install-sub" v-if="platform === 'ios'">
             Tap <span class="ios-share-icon">⎘</span> Share → Add to Home Screen for the full app experience.
           </div>
@@ -12,7 +12,7 @@
             Add to your home screen for quick access and a full app experience.
           </div>
           <div class="install-sub" v-else>
-            Add Holodex to your home screen for quick access.
+            Add Rarebox to your home screen for quick access.
           </div>
         </div>
       </div>
@@ -65,7 +65,7 @@
                   <div class="ios-step-num">4</div>
                   <div>
                     <strong>Tap Add</strong>
-                    <p>Confirm by tapping "Add" in the top right corner. Holodex will appear on your home screen.</p>
+                    <p>Confirm by tapping "Add" in the top right corner. Rarebox will appear on your home screen.</p>
                   </div>
                 </div>
               </div>
@@ -80,7 +80,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
-const STORAGE_KEY = 'holodex_install_dismissed'
+const STORAGE_KEY = 'rarebox_install_dismissed'
 
 const show = ref(false)
 const platform = ref('unknown')

@@ -9,7 +9,7 @@ const routes = [
   { path: '/decks/meta', name: 'MetaDecks', component: () => import('../views/MetaDecksView.vue'), meta: { title: 'Meta Decks', description: 'Browse popular competitive Pokémon TCG decks. Import with one click.' } },
   { path: '/decks/:id', name: 'DeckBuilder', component: () => import('../views/DeckBuilderView.vue'), meta: { title: 'Deck Builder', description: 'Build your deck, track card ownership, and calculate costs.' } },
   { path: '/settings', name: 'Settings', component: () => import('../views/SettingsView.vue'), meta: { title: 'Settings', description: 'Export data, manage backups, transfer to device, and configure alerts.' } },
-  { path: '/terms', name: 'Terms', component: () => import('../views/TermsView.vue'), meta: { title: 'Terms & Conditions', description: 'Terms & Conditions and Privacy Policy for Holodex.' } },
+  { path: '/terms', name: 'Terms', component: () => import('../views/TermsView.vue'), meta: { title: 'Terms & Conditions', description: 'Terms & Conditions and Privacy Policy for Rarebox.' } },
 ]
 
 const router = createRouter({
@@ -21,7 +21,7 @@ const router = createRouter({
 // Update document title and meta description on navigation
 router.afterEach((to) => {
   const title = to.meta.title || 'Dashboard'
-  document.title = `${title} — Holodex`
+  document.title = `${title} — Rarebox`
 
   // Update meta description
   let desc = document.querySelector('meta[name="description"]')
@@ -34,7 +34,7 @@ router.afterEach((to) => {
 
   // Update OG tags
   let ogTitle = document.querySelector('meta[property="og:title"]')
-  if (ogTitle) ogTitle.setAttribute('content', `${title} — Holodex`)
+  if (ogTitle) ogTitle.setAttribute('content', `${title} — Rarebox`)
   let ogDesc = document.querySelector('meta[property="og:description"]')
   if (ogDesc) ogDesc.setAttribute('content', to.meta.description || 'Track your Pokémon TCG collection with live prices and portfolio charts.')
 })

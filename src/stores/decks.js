@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { usePortfolioStore } from './portfolio'
 import { getMarketPrice, getCard, searchCards } from '../services/pokemonApi'
 
-const STORAGE_KEY = 'holodex_decks'
+const STORAGE_KEY = 'rarebox_decks'
 
 function generateId() {
   return crypto.randomUUID()

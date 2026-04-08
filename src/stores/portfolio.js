@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-const STORAGE_KEY = 'holodex_portfolios'
-const SETTINGS_KEY = 'holodex_settings'
-const SNAPSHOTS_KEY = 'holodex_snapshots'
+const STORAGE_KEY = 'rarebox_portfolios'
+const SETTINGS_KEY = 'rarebox_settings'
+const SNAPSHOTS_KEY = 'rarebox_snapshots'
 const MAX_SNAPSHOTS = 1095 // 3 years of daily snapshots
 
 function generateId() {

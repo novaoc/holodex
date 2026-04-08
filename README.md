@@ -1,4 +1,4 @@
-# Holodex
+# Rarebox
 
 Track your Pokemon TCG collection — cards, sealed products, and graded slabs — with live prices and portfolio charts.
 
@@ -94,7 +94,7 @@ Built by [Nova](https://github.com/novaoc).
 
 ### SEO
 - HTML5 history mode routing (clean URLs: `/search`, `/sets` instead of `/#/search`)
-- Per-route page titles (e.g., "Search Cards — Holodex")
+- Per-route page titles (e.g., "Search Cards — Rarebox")
 - Per-route meta descriptions updated on navigation
 - Dynamic OG tags for social sharing per page
 - `robots.txt` with sitemap reference

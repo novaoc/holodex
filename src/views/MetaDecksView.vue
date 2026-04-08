@@ -85,7 +85,7 @@ onMounted(async () => {
     source.value = 'live'
     // Read cache timestamp
     try {
-      const cached = JSON.parse(localStorage.getItem('holodex_meta_decks_cache'))
+      const cached = JSON.parse(localStorage.getItem('rarebox_meta_decks_cache'))
       if (cached?.timestamp) lastUpdated.value = new Date(cached.timestamp)
     } catch {}
   } catch {
