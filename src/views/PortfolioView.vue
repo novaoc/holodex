@@ -188,32 +188,22 @@
                 </div>
               </div>
 
-              <!-- PriceCharting fetch -->
-              <div v-if="hasPCKey" class="pc-fetch-section mt-3">
-                <div class="pc-fetch-label">Fetch from PriceCharting</div>
+              <!-- eBay price fetch -->
+              <div class="pc-fetch-section mt-3">
+                <div class="pc-fetch-label">Fetch from eBay Sold</div>
                 <div class="flex gap-2">
-                  <input v-model="pcQuery" class="input input-sm" :placeholder="pcQueryPlaceholder" @keyup.enter="searchPC" />
-                  <button class="btn btn-secondary btn-sm" :disabled="pcSearching" @click="searchPC" style="flex-shrink:0">
+                  <input v-model="pcQuery" class="input input-sm" placeholder="Search query…" @keyup.enter="searchPC" />
+                  <button class="btn btn-secondary btn-sm" :disabled="pcSearching || !pcQuery.trim()" @click="searchPC" style="flex-shrink:0">
                     <span v-if="pcSearching" class="spinner spinner-sm"></span>
-                    <span v-else>Search</span>
+                    <span v-else>Fetch</span>
                   </button>
                 </div>
                 <div v-if="pcError" class="text-danger mt-2" style="font-size:12px">{{ pcError }}</div>
-                <div v-if="pcResults.length > 0" class="pc-results mt-2">
-                  <div
-                    v-for="r in pcResults"
-                    :key="r.id"
-                    class="pc-result"
-                    @click="applyPCPrice(r)"
-                  >
-                    <div class="pc-result-name">{{ r['product-name'] }}</div>
-                    <div class="pc-result-console">{{ r['console-name'] }}</div>
-                    <div class="pc-result-price text-accent">{{ getPCDisplayPrice(r) }}</div>
-                  </div>
+                <div v-if="pcResult" class="pc-result-box mt-2">
+                  <div class="pc-result-price-main">${{ pcResult.median.toFixed(2) }}</div>
+                  <div class="pc-result-meta">median of {{ pcResult.count }} eBay sales · range ${{ pcResult.min.toFixed(0) }}–${{ pcResult.max.toFixed(0) }}</div>
+                  <button class="btn btn-primary btn-sm mt-2" @click="applyPCPrice">Apply price</button>
                 </div>
-              </div>
-              <div v-else class="mt-3" style="font-size:12px;color:var(--text-muted)">
-                <router-link to="/settings">Add a PriceCharting API key</router-link> to fetch live prices for sealed &amp; graded items.
               </div>
             </div>
           </div>
@@ -314,7 +304,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel } from '../utils/excel'
 import { getCard, getMarketPrice } from '../services/pokemonApi'
-import { getPCApiKey, searchPCProducts, extractPrice } from '../services/priceCharting'
+import { fetchEbayPrice } from '../services/priceServer'
 import PriceChart from '../components/PriceChart.vue'
 import PortfolioChart from '../components/PortfolioChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
@@ -340,25 +330,17 @@ const editCurrentValue = ref(null)
 const refreshing = ref(false)
 const refreshStatus = ref('')
 
-// PriceCharting
-const hasPCKey = computed(() => !!getPCApiKey())
+// eBay price fetch (via local price server)
 const pcQuery = ref('')
 const pcSearching = ref(false)
-const pcResults = ref([])
+const pcResult = ref(null)   // { median, mean, min, max, count }
 const pcError = ref('')
-const pcQueryPlaceholder = computed(() => {
-  if (!selectedItem.value) return 'Search PriceCharting…'
-  if (selectedItem.value.type === 'graded') {
-    return `${selectedItem.value.cardData?.name || ''} PSA`
-  }
-  return selectedItem.value.name || 'Search PriceCharting…'
-})
 
 watch(selectedItem, (item) => {
-  pcResults.value = []
+  pcResult.value = null
   pcError.value = ''
   if (item?.type === 'graded') {
-    pcQuery.value = `${item.cardData?.name || ''} PSA`
+    pcQuery.value = `${item.cardData?.name || ''} PSA ${item.grade || ''}`.trim()
   } else if (item?.type === 'sealed') {
     pcQuery.value = item.name || ''
   } else {
@@ -370,43 +352,26 @@ async function searchPC() {
   if (!pcQuery.value.trim()) return
   pcSearching.value = true
   pcError.value = ''
-  pcResults.value = []
+  pcResult.value = null
   try {
-    const results = await searchPCProducts(pcQuery.value)
-    // Filter to Pokemon-related results and cap at 6
-    const filtered = results
-      .filter(r => {
-        const name = (r['product-name'] || '').toLowerCase()
-        const console = (r['console-name'] || '').toLowerCase()
-        return console.includes('pokemon') || console.includes('tcg') || console.includes('card')
-      })
-      .slice(0, 6)
-    pcResults.value = filtered.length > 0 ? filtered : results.slice(0, 6)
-    if (pcResults.value.length === 0) pcError.value = 'No results found'
+    pcResult.value = await fetchEbayPrice(pcQuery.value)
   } catch (e) {
-    if (e.message === 'no_key') pcError.value = 'No API key — add one in Settings'
-    else if (e.message === 'bad_key') pcError.value = 'Invalid API key'
-    else if (e.message === 'cors') pcError.value = 'Network error — check console'
-    else pcError.value = 'Search failed'
+    if (e.message === 'server_down') pcError.value = 'Price server offline — run price-server/main.py'
+    else if (e.message === 'timeout') pcError.value = 'Request timed out — eBay may be slow'
+    else if (e.message === 'no_results') pcError.value = 'No sold listings found — try a different query'
+    else pcError.value = 'Fetch failed'
   } finally {
     pcSearching.value = false
   }
 }
 
-function getPCDisplayPrice(product) {
-  if (!selectedItem.value) return '—'
-  const price = extractPrice(product, selectedItem.value.type, selectedItem.value.grade)
-  return price ? `$${price.toFixed(2)}` : 'No price'
-}
-
-function applyPCPrice(product) {
-  if (!selectedItem.value) return
-  const price = extractPrice(product, selectedItem.value.type, selectedItem.value.grade)
-  if (!price) { pcError.value = 'No matching price for this item type/grade'; return }
+function applyPCPrice() {
+  if (!selectedItem.value || !pcResult.value) return
+  const price = pcResult.value.median
   const key = selectedItem.value.type === 'card' ? 'currentMarketPrice' : 'currentValue'
   store.updateItem(portfolio.value.id, selectedItem.value.id, { [key]: price })
   editCurrentValue.value = price
-  pcResults.value = []
+  pcResult.value = null
   pcError.value = ''
 }
 
@@ -621,7 +586,7 @@ function deletePortfolio() {
 .info-label { color: var(--text-muted); }
 .panel-chart-section { border-top: 1px solid var(--border); padding-top: 20px; }
 
-/* PriceCharting fetch */
+/* eBay price fetch */
 .pc-fetch-section {
   border-top: 1px solid var(--border-subtle);
   padding-top: 12px;
@@ -634,26 +599,21 @@ function deletePortfolio() {
   color: var(--text-muted);
   margin-bottom: 8px;
 }
-.pc-results {
+.pc-result-box {
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  overflow: hidden;
+  padding: 10px 12px;
 }
-.pc-result {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--border-subtle);
-  cursor: pointer;
-  transition: background 0.15s;
+.pc-result-price-main {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-accent, var(--accent));
 }
-.pc-result:last-child { border-bottom: none; }
-.pc-result:hover { background: var(--bg-hover); }
-.pc-result-name { font-size: 12px; font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pc-result-console { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
-.pc-result-price { font-size: 13px; font-weight: 700; flex-shrink: 0; }
+.pc-result-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
 
 /* Mobile / tablet */
 @media (max-width: 768px) {

@@ -37,40 +37,18 @@
     <!-- Price Data Sources -->
     <div class="settings-section card mb-4">
       <h3 class="settings-section-title">Price Data Sources</h3>
-      <p class="settings-desc">Configure API keys for additional price sources. Keys are stored locally on your device only.</p>
+      <p class="settings-desc">Sealed product and graded slab prices are fetched from eBay sold listings via a local price server. No API keys required.</p>
 
-      <div class="settings-item settings-item-col">
-        <div class="settings-item-header">
-          <div>
-            <div class="settings-item-label">PriceCharting API Key</div>
-            <div class="settings-item-sub">
-              Free key at
-              <a href="https://www.pricecharting.com/api-documentation" target="_blank" rel="noopener">pricecharting.com/api-documentation</a>
-              — enables live price lookup for sealed products and graded slabs
-            </div>
-          </div>
-          <span v-if="currentPCKey" class="badge badge-success" style="flex-shrink:0">Active</span>
-        </div>
-        <div class="pc-key-input-row">
-          <input
-            v-model="pcKeyInput"
-            class="input"
-            :type="showPCKey ? 'text' : 'password'"
-            placeholder="Paste your API key here…"
-            @keyup.enter="savePCKey"
-          />
-          <button class="btn btn-ghost btn-sm" @click="showPCKey = !showPCKey" style="flex-shrink:0">{{ showPCKey ? 'Hide' : 'Show' }}</button>
-          <button class="btn btn-primary btn-sm" @click="savePCKey" :disabled="!pcKeyInput.trim()" style="flex-shrink:0">Save</button>
-        </div>
-        <div v-if="pcKeySaved" class="text-success" style="font-size:12px;margin-top:4px">✓ API key saved</div>
-      </div>
-
-      <div v-if="currentPCKey" class="settings-item">
+      <div class="settings-item">
         <div>
-          <div class="settings-item-label">PriceCharting Cache</div>
-          <div class="settings-item-sub">{{ pcCacheCount }} cached lookups</div>
+          <div class="settings-item-label">Price Server</div>
+          <div class="settings-item-sub">
+            Runs at <code>localhost:7890</code> — start with <code>python3 price-server/main.py</code>
+          </div>
         </div>
-        <button class="btn btn-secondary btn-sm" @click="removePCKey">Remove Key</button>
+        <span :class="serverOnline ? 'badge badge-success' : 'badge badge-error'">
+          {{ serverOnline === null ? 'Checking…' : serverOnline ? 'Online' : 'Offline' }}
+        </span>
       </div>
     </div>
 
@@ -119,7 +97,7 @@
         </div>
         <div class="about-item">
           <div class="about-label">Sealed / Graded</div>
-          <div class="about-val">PriceCharting (with key)</div>
+          <div class="about-val">eBay sold listings</div>
         </div>
       </div>
 
@@ -130,7 +108,7 @@
         </div>
         <div class="note">
           <span>📦</span>
-          <p>For sealed products and graded slabs, add a free <strong>PriceCharting API key</strong> above. You can search and apply market prices directly from your portfolio view.</p>
+          <p>For sealed products and graded slabs, prices are fetched from <strong>eBay sold listings</strong> via the local price server. Start it with <code>python3 price-server/main.py</code> before fetching prices.</p>
         </div>
       </div>
     </div>
@@ -171,7 +149,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel, exportAllPortfolios } from '../utils/excel'
-import { getPCApiKey, savePCApiKey, clearPCCache } from '../services/priceCharting'
+import { checkServerHealth } from '../services/priceServer'
 
 const store = usePortfolioStore()
 const router = useRouter()
@@ -179,20 +157,14 @@ const router = useRouter()
 const confirmReset = ref(false)
 const resetConfirmText = ref('')
 
-// PriceCharting key state
-const currentPCKey = ref(getPCApiKey())
-const pcKeyInput = ref('')
-const showPCKey = ref(false)
-const pcKeySaved = ref(false)
+// Price server status
+const serverOnline = ref(null)
+checkServerHealth().then(ok => { serverOnline.value = ok })
 
 const totalItems = computed(() => store.portfolios.reduce((s, p) => s + p.items.length, 0))
 
 const cacheCount = computed(() => {
   return Object.keys(localStorage).filter(k => k.startsWith('ph_cache_')).length
-})
-
-const pcCacheCount = computed(() => {
-  return Object.keys(localStorage).filter(k => k.startsWith('pc_cache_')).length
 })
 
 const storageUsed = computed(() => {
@@ -208,21 +180,6 @@ const storageUsed = computed(() => {
 function clearPriceCache() {
   const keys = Object.keys(localStorage).filter(k => k.startsWith('ph_cache_'))
   keys.forEach(k => localStorage.removeItem(k))
-}
-
-function savePCKey() {
-  if (!pcKeyInput.value.trim()) return
-  savePCApiKey(pcKeyInput.value)
-  currentPCKey.value = getPCApiKey()
-  pcKeySaved.value = true
-  setTimeout(() => { pcKeySaved.value = false }, 3000)
-}
-
-function removePCKey() {
-  savePCApiKey('')
-  clearPCCache()
-  currentPCKey.value = ''
-  pcKeyInput.value = ''
 }
 
 function doReset() {
