@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 const STORAGE_KEY = 'holodex_portfolios'
 const SETTINGS_KEY = 'holodex_settings'
 const SNAPSHOTS_KEY = 'holodex_snapshots'
-const MAX_SNAPSHOTS = 365 // one per day for a year
+const MAX_SNAPSHOTS = 1095 // 3 years of daily snapshots
 
 function generateId() {
   return crypto.randomUUID()
@@ -230,6 +230,18 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     saveSnapshots(snapshots.value)
   }
 
+  // Auto-record snapshot once per day for all portfolios (no API calls, uses cached prices)
+  function autoSnapshot() {
+    const today = new Date().toISOString().split('T')[0]
+    for (const portfolio of portfolios.value) {
+      if (portfolio.items.length === 0) continue
+      const list = snapshots.value[portfolio.id] || []
+      const lastSnap = list[list.length - 1]
+      if (lastSnap?.date === today) continue // already recorded today
+      recordSnapshot(portfolio.id)
+    }
+  }
+
   // Returns [{x: timestamp, y: price}] for a specific item across all snapshots.
   // Prepends the purchase-date point as the synthetic origin.
   function getItemHistory(portfolioId, itemId) {
@@ -325,6 +337,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     recordSnapshot,
     getItemHistory,
     resetAll,
-    cleanupSnapshots
+    cleanupSnapshots,
+    autoSnapshot,
   }
 })

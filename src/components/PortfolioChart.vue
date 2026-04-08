@@ -65,6 +65,15 @@ const ranges = [
   { label: '3Y', value: '3y' },
 ]
 
+// Date format for x-axis labels based on range
+const rangeDateFormats = {
+  '7d': { format: 'dd MMM' },
+  '1m': { format: 'dd MMM' },
+  '6m': { format: 'MMM yyyy' },
+  '1y': { format: 'MMM yyyy' },
+  '3y': { format: 'MMM yyyy' },
+}
+
 const currentValue = computed(() => {
   return props.portfolios.flatMap(p => p.items).reduce((sum, item) => {
     const qty = item.quantity || 1
@@ -264,7 +273,27 @@ function applyRange(points) {
   const color = display.length >= 2
     ? (display[display.length - 1].y >= display[0].y ? '#3fb950' : '#f85149')
     : '#f5a623'
-  chartOptions.value = { ...chartOptions.value, colors: [color] }
+
+  // Set x-axis tick format based on range — prevents "hours" showing on 7D/1M
+  const dtFmt = rangeDateFormats[activeRange.value] || { format: 'MMM yyyy' }
+  chartOptions.value = {
+    ...chartOptions.value,
+    colors: [color],
+    xaxis: {
+      ...chartOptions.value.xaxis,
+      labels: {
+        ...chartOptions.value.xaxis.labels,
+        datetimeFormatter: {
+          year: 'yyyy',
+          month: dtFmt.format,
+          day: dtFmt.format,
+          hour: 'HH:mm',
+        },
+      },
+      // Force tick amount for short ranges so dates are evenly spaced
+      tickAmount: activeRange.value === '7d' ? 7 : activeRange.value === '1m' ? 6 : undefined,
+    },
+  }
   chartSeries.value = [{ name: props.label, data: display }]
 }
 

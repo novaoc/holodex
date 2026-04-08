@@ -150,6 +150,7 @@ function createPortfolio() {
 
 onMounted(() => {
   store.init()
+  store.autoSnapshot() // record daily price snapshot for chart history
 })
 </script>
 

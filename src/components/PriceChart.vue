@@ -220,7 +220,24 @@ function applyRange(allSeries) {
   const color = display.length >= 2
     ? (display[display.length - 1].y >= display[0].y ? '#3fb950' : '#f85149')
     : '#f5a623'
-  chartOptions.value = { ...chartOptions.value, colors: [color] }
+
+  // Set x-axis tick format based on range — prevents "hours" showing on 7D/1M
+  const dtFmtMap = {
+    '7d': 'dd MMM', '1m': 'dd MMM', '6m': 'MMM yyyy', '1y': 'MMM yyyy', '3y': 'MMM yyyy',
+  }
+  const dtFmt = dtFmtMap[activeRange.value] || 'MMM yyyy'
+  chartOptions.value = {
+    ...chartOptions.value,
+    colors: [color],
+    xaxis: {
+      ...chartOptions.value.xaxis,
+      labels: {
+        ...chartOptions.value.xaxis.labels,
+        datetimeFormatter: { year: 'yyyy', month: dtFmt, day: dtFmt, hour: 'HH:mm' },
+      },
+      tickAmount: activeRange.value === '7d' ? 7 : activeRange.value === '1m' ? 6 : undefined,
+    },
+  }
 }
 
 watch(() => props.cardId, load, { immediate: false })
