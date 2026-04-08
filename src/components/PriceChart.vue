@@ -79,7 +79,7 @@ const rawHistory = ref(null)
 const chartSeries = ref([])
 const availableVariants = ref([])
 const selectedVariant = ref(null)
-const activeRange = ref('3y')
+const activeRange = ref('7d')
 
 const rangeLabel = computed(() => {
   const map = { '7d': '7D', '1m': '1M', '6m': '6M', '1y': '1Y', '3y': '3Y' }

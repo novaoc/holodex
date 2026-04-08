@@ -55,7 +55,7 @@ const props = defineProps({
 const loading = ref(true)
 const noData = ref(false)
 const chartSeries = ref([])
-const activeRange = ref('1y')
+const activeRange = ref('7d')
 
 const ranges = [
   { label: '7D', value: '7d' },

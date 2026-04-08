@@ -183,9 +183,20 @@ export async function searchSealed(query) {
   const cached = cacheGet(cacheKey)
   if (cached) return { results: cached, cached: true }
 
-  let products
+  let products = []
   try {
     products = await searchPC(`${q} sealed pokemon`)
+    // If query mentions "case", also search without "sealed" to find case listings
+    if (q.toLowerCase().includes('case')) {
+      try {
+        const caseProducts = await searchPC(`${q} pokemon`)
+        // Merge, dedup by slug
+        const seen = new Set(products.map(p => p.id))
+        for (const p of caseProducts) {
+          if (p.id && !seen.has(p.id)) products.push(p)
+        }
+      } catch { /* best effort */ }
+    }
   } catch (e) {
     if (e.name === 'TimeoutError') throw new Error('timeout')
     throw new Error('server_down')

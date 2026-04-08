@@ -71,7 +71,7 @@
               <input
                 v-model="sealedQuery"
                 class="input"
-                placeholder="e.g. Fusion Strike, Base Set…"
+                placeholder="e.g. Fusion Strike, Phantasmal Flames case…"
                 @keyup.enter="doSealedSearch"
               />
               <button
