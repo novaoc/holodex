@@ -89,6 +89,39 @@
           </div>
         </div>
 
+        <!-- Deck Building -->
+        <div class="feature-section">
+          <div class="feature-header">
+            <span class="feature-icon">⚔️</span>
+            <div>
+              <h2>Deck Building</h2>
+              <p class="feature-sub">Build decks, track what you own, and see what you still need.</p>
+            </div>
+          </div>
+          <div class="feature-grid">
+            <div class="feature-card">
+              <div class="feature-card-icon">🆕</div>
+              <h3>Build Custom Decks</h3>
+              <p>Search any card and add it to a deck. Manage multiple decks side by side with total cost tracking per deck.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">📊</div>
+              <h3>Collection Sync</h3>
+              <p>See which cards you already own across your portfolios. Green badges show owned copies — red shows what you still need.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">🏆</div>
+              <h3>Meta Deck Import</h3>
+              <p>Popular competitive decks available as one-click imports. Add Charizard ex, Gardevoir, Lugia VSTAR, and more instantly.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon">💰</div>
+              <h3>Cost Tracking</h3>
+              <p>See the total cost to finish each deck based on current market prices. Know exactly what you're spending before you buy.</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Bulk Import -->
         <div class="feature-section">
           <div class="feature-header">
