@@ -83,7 +83,7 @@
           <li><strong>tcgdex.net</strong> — Japanese card data, set information, and
             card images</li>
           <li><strong>PriceCharting</strong> — graded and sealed product pricing</li>
-          <li><strong>Cloudflare Pages</strong> — hosting and CDN</li>
+          <li><strong>Vercel</strong> — hosting and CDN</li>
           <li><strong>jsonbin.io</strong> — optional cross-device sync (only if you
             configure it)</li>
           <li><strong>GitHub</strong> — source code hosting and meta deck data</li>
@@ -245,7 +245,7 @@
         <h2>5. Third-Party Services</h2>
         <p>Your browser makes direct requests to:</p>
         <ul>
-          <li><strong>Cloudflare Pages</strong> — hosting provider. May log standard
+          <li><strong>Vercel</strong> — hosting provider. May log standard
             request data (IP, user agent) per their privacy policy.</li>
           <li><strong>pokemontcg.io</strong> — card data API</li>
           <li><strong>tcgdex.net</strong> — Japanese card data and images</li>
@@ -260,7 +260,7 @@
         <p>
           Holodex does not use analytics, tracking pixels, fingerprinting, or
           advertising networks. We do not track your behavior, searches, or
-          interactions. Our hosting provider (Cloudflare) may collect standard
+          interactions. Our hosting provider (Vercel) may collect standard
           traffic data as part of normal CDN operations.
         </p>
       </section>
