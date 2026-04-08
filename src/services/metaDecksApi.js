@@ -1,116 +1,47 @@
-// Fetches live meta deck data from Limitless TCG
+// Fetches live meta deck data from our own serverless endpoint (scrapes Limitless TCG)
 // Caches in localStorage for 24 hours
 // Falls back to hardcoded decks if fetch fails
 
-import { searchCards, getMarketPrice } from './pokemonApi'
+import { getMarketPrice } from './pokemonApi'
 
 const CACHE_KEY = 'holodex_meta_decks_cache'
 const CACHE_TTL = 1000 * 60 * 60 * 24 // 24 hours
-const CORS_PROXIES = [
-  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-]
+const BASE_URL = 'https://api.pokemontcg.io/v2'
 
-async function fetchWithCorsProxy(url) {
-  for (const buildProxyUrl of CORS_PROXIES) {
-    try {
-      const res = await fetch(buildProxyUrl(url), { signal: AbortSignal.timeout(8000) })
-      if (res.ok) return await res.text()
-    } catch {}
-  }
-  throw new Error('All CORS proxies failed')
+// Map Limitless set codes (ptcgo codes) to pokemontcg.io set IDs
+const SET_CODE_MAP = {
+  SVI: 'sv1', PAL: 'sv2', OBF: 'sv3', PAF: 'sv4pt5', PAR: 'sv4',
+  TEF: 'sv5', TWM: 'sv6', SFA: 'sv6pt5', SCR: 'sv7', SSP: 'sv8',
+  PRE: 'sv8pt5', JTG: 'sv9', DRI: 'sv10',
+  MEG: 'me1', ASC: 'me2pt5',
+  // Older sets
+  BRS: 'swsh9', FST: 'swsh8', EVS: 'swsh7', CRE: 'swsh6', BST: 'swsh5',
+  DAA: 'swsh3', RCL: 'swsh2', SSH: 'swsh1', CEL: 'cel25', CRZ: 'swsh12pt5',
 }
 
-function parseDecksTable(html) {
-  const decks = []
-  // Match each table row with deck data: rank, name, points, share
-  const rowRegex = /<tr>\s*<td>(\d+)<\/td>.*?<a href="\/decks\/(\d+)">(.*?)<\/a>.*?<td>([\d,]+)<\/td>\s*<td>([\d.]+%)<\/td>\s*<\/tr>/gs
-  let match
-  while ((match = rowRegex.exec(html)) !== null) {
-    const [, rank, id, rawName, points, share] = match
-    // Clean HTML from name (remove <span> tags)
-    const name = rawName.replace(/<[^>]+>/g, '').trim()
-    const annotation = rawName.match(/<span class="annotation">(.*?)<\/span>/)?.[1]?.trim() || ''
-    decks.push({
-      rank: parseInt(rank),
-      limitlessId: id,
-      name: annotation ? `${name} ${annotation}` : name,
-      points: parseInt(points.replace(/,/g, '')),
-      share,
-    })
-  }
-  return decks
+// Fetch a specific card by set code + number
+async function fetchCardBySetNumber(limitlessCode, number) {
+  const setCode = SET_CODE_MAP[limitlessCode] || limitlessCode.toLowerCase()
+  const url = `${BASE_URL}/cards?q=set.id:${setCode}+number:${number}&pageSize=1`
+  const res = await fetch(url)
+  if (!res.ok) return null
+  const data = await res.json()
+  return data?.data?.[0] || null
 }
 
-async function fetchDeckList(limitlessId) {
-  const html = await fetchWithCorsProxy(`https://limitlesstcg.com/decks/${limitlessId}`)
-  // Parse the deck list from the page
-  // Look for the card list section — cards are in format: "4 Card Name SET"
-  const cards = []
-
-  // Try parsing from the decklist table/cards section
-  // Format: number + name + set code in various HTML structures
-  const cardRegex = /<span class="card-count">(\d+)<\/span>\s*<span class="card-name"[^>]*>(.*?)<\/span>\s*(?:<span class="card-set"[^>]*>(.*?)<\/span>)?/g
-  let match
-  while ((match = cardRegex.exec(html)) !== null) {
-    const [, qty, name, setCode] = match
-    cards.push({
-      name: name.trim(),
-      quantity: parseInt(qty),
-      setCode: setCode?.trim() || '',
-    })
-  }
-
-  // Alternate parsing: look for plain text deck list
-  if (cards.length === 0) {
-    const lineRegex = /(\d+)\s+([A-Z][a-z].*?)(?:\s+([A-Z]{2,4}\d*))?\s*(?:<|$)/g
-    while ((match = lineRegex.exec(html)) !== null) {
-      const [, qty, name, setCode] = match
-      if (parseInt(qty) <= 60 && name.length < 80) {
-        cards.push({
-          name: name.trim(),
-          quantity: parseInt(qty),
-          setCode: setCode?.trim() || '',
-        })
-      }
-    }
-  }
-
-  return cards
-}
-
-// Resolve a card template to a real card via the Pokemon TCG API
+// Resolve a card template (setCode + number) to a full card with price
 async function resolveCard(cardTemplate) {
   try {
-    const result = await searchCards(cardTemplate.name, 1, 20)
-    if (!result?.data?.length) return null
+    const card = await fetchCardBySetNumber(cardTemplate.setCode, cardTemplate.number)
+    if (!card) return null
 
-    const candidates = result.data
-
-    // Prefer regular prints over alt arts
-    const rarityOrder = {
-      'Common': 0, 'Uncommon': 1, 'Rare': 2, 'Rare Holo': 3,
-      'Double Rare': 4, 'Ultra Rare': 5, 'Illustration Rare': 6,
-      'Special Illustration Rare': 7, 'Hyper Rare': 8, 'Secret Rare': 9,
-    }
-
-    candidates.sort((a, b) => {
-      const numA = parseInt(a.number) || 999
-      const numB = parseInt(b.number) || 999
-      if (numA < 200 && numB < 200) {
-        return (rarityOrder[a.rarity] ?? 5) - (rarityOrder[b.rarity] ?? 5)
-      }
-      return numA - numB
-    })
-
-    const card = candidates[0]
     const priceResult = getMarketPrice(card)
     return {
       cardId: card.id,
       name: card.name,
       setName: card.set?.name || '',
-      setCode: card.set?.id || '',
-      number: card.number || '',
+      setCode: card.set?.id || cardTemplate.setCode,
+      number: card.number || cardTemplate.number,
       quantity: cardTemplate.quantity,
       price: priceResult?.price || null,
       image: card.images?.small || '',
@@ -129,48 +60,36 @@ export async function fetchLiveMetaDecks() {
     }
   } catch {}
 
-  // Fetch the meta decks page from Limitless
-  const html = await fetchWithCorsProxy('https://limitlesstcg.com/decks?format=standard')
-  const deckList = parseDecksTable(html)
+  // Fetch from our serverless endpoint
+  const res = await fetch('/api/meta-decks')
+  if (!res.ok) throw new Error(`Meta decks API returned ${res.status}`)
 
-  if (deckList.length === 0) throw new Error('No decks parsed')
+  const data = await res.json()
+  if (!data.decks?.length) throw new Error('No decks returned')
 
-  // Take top 8 decks and resolve their cards
-  const topDecks = deckList.slice(0, 8)
+  // Resolve cards by set+number — much more accurate than name matching
   const resolvedDecks = []
 
-  for (const deckMeta of topDecks) {
+  for (const deck of data.decks) {
     try {
-      const rawCards = await fetchDeckList(deckMeta.limitlessId)
+      const resolved = await Promise.allSettled(
+        deck.cards.map(c => resolveCard(c))
+      )
 
-      if (rawCards.length > 0) {
-        // Resolve each card to get IDs and prices
-        const resolved = await Promise.allSettled(
-          rawCards.slice(0, 20).map(c => resolveCard(c)) // cap at 20 cards per deck for performance
-        )
+      const cards = resolved
+        .filter(r => r.status === 'fulfilled' && r.value)
+        .map(r => r.value)
 
-        const cards = resolved
-          .filter(r => r.status === 'fulfilled' && r.value)
-          .map(r => r.value)
-
-        if (cards.length > 0) {
-          resolvedDecks.push({
-            name: deckMeta.name,
-            archetype: deckMeta.name.replace(/\s+(ex|VSTAR|VMAX|GX).*$/i, '').trim(),
-            description: `${deckMeta.share} meta share · ${deckMeta.points.toLocaleString()} CP · ${deckMeta.rank}${deckMeta.rank === 1 ? 'st' : deckMeta.rank === 2 ? 'nd' : deckMeta.rank === 3 ? 'rd' : 'th'} most played`,
-            cards,
-            meta: {
-              rank: deckMeta.rank,
-              share: deckMeta.share,
-              points: deckMeta.points,
-              limitlessId: deckMeta.limitlessId,
-            },
-          })
-        }
+      if (cards.length > 0) {
+        resolvedDecks.push({
+          name: deck.name,
+          archetype: deck.archetype || deck.name,
+          description: deck.description || '',
+          cards,
+          meta: deck.meta,
+        })
       }
-    } catch {
-      // Skip decks that fail to parse
-    }
+    } catch {}
   }
 
   if (resolvedDecks.length > 0) {
@@ -191,13 +110,13 @@ export const fallbackMetaDecks = [
     archetype: 'Charizard',
     description: 'The king of consistency. Rare Candy into Charizard ex for OHKOs.',
     cards: [
-      { name: 'Charizard ex', setCode: 'sv3', setName: 'Obsidian Flames', quantity: 3 },
-      { name: 'Charmander', setCode: 'sv3', setName: 'Obsidian Flames', quantity: 4 },
-      { name: 'Charmeleon', setCode: 'sv3', setName: 'Obsidian Flames', quantity: 1 },
-      { name: 'Pidgey', setCode: 'sv3', setName: 'Obsidian Flames', quantity: 4 },
-      { name: 'Pidgeot ex', setCode: 'sv3', setName: 'Obsidian Flames', quantity: 2 },
-      { name: 'Rotom V', setCode: 'sv4', setName: 'Paradox Rift', quantity: 1 },
-      { name: 'Lumineon V', setCode: 'sv3pt5', setName: '151', quantity: 1 },
+      { name: 'Charizard ex', setCode: 'sv3', number: '125', quantity: 3 },
+      { name: 'Charmander', setCode: 'sv3', number: '26', quantity: 4 },
+      { name: 'Charmeleon', setCode: 'sv3', number: '27', quantity: 1 },
+      { name: 'Pidgey', setCode: 'sv3', number: '162', quantity: 4 },
+      { name: 'Pidgeot ex', setCode: 'sv3', number: '164', quantity: 2 },
+      { name: 'Rotom V', setCode: 'sv4', number: '50', quantity: 1 },
+      { name: 'Lumineon V', setCode: 'sv3pt5', number: '40', quantity: 1 },
     ]
   },
   {
@@ -205,11 +124,11 @@ export const fallbackMetaDecks = [
     archetype: 'Gardevoir',
     description: 'Psychic acceleration with Kirlia draw engine.',
     cards: [
-      { name: 'Gardevoir ex', setCode: 'sv1', setName: 'Scarlet & Violet', quantity: 3 },
-      { name: 'Kirlia', setCode: 'sv1', setName: 'Scarlet & Violet', quantity: 4 },
-      { name: 'Ralts', setCode: 'sv1', setName: 'Scarlet & Violet', quantity: 4 },
-      { name: 'Mew ex', setCode: 'sv2', setName: 'Paldea Evolved', quantity: 1 },
-      { name: 'Iron Valiant ex', setCode: 'sv4', setName: 'Paradox Rift', quantity: 2 },
+      { name: 'Gardevoir ex', setCode: 'sv1', number: '86', quantity: 3 },
+      { name: 'Kirlia', setCode: 'sv1', number: '68', quantity: 4 },
+      { name: 'Ralts', setCode: 'sv1', number: '67', quantity: 4 },
+      { name: 'Mew ex', setCode: 'sv2', number: '86', quantity: 1 },
+      { name: 'Iron Valiant ex', setCode: 'sv4', number: '86', quantity: 2 },
     ]
   },
   {
@@ -217,11 +136,11 @@ export const fallbackMetaDecks = [
     archetype: 'Dragapult',
     description: 'Phantom Dive for spread damage. Fast and aggressive.',
     cards: [
-      { name: 'Dragapult ex', setCode: 'sv6', setName: 'Twilight Masquerade', quantity: 3 },
-      { name: 'Drakloak', setCode: 'sv6', setName: 'Twilight Masquerade', quantity: 3 },
-      { name: 'Dreepy', setCode: 'sv6', setName: 'Twilight Masquerade', quantity: 4 },
-      { name: 'Rotom V', setCode: 'sv4', setName: 'Paradox Rift', quantity: 1 },
-      { name: 'Lumineon V', setCode: 'sv3pt5', setName: '151', quantity: 1 },
+      { name: 'Dragapult ex', setCode: 'sv6', number: '130', quantity: 3 },
+      { name: 'Drakloak', setCode: 'sv6', number: '129', quantity: 3 },
+      { name: 'Dreepy', setCode: 'sv6', number: '128', quantity: 4 },
+      { name: 'Rotom V', setCode: 'sv4', number: '50', quantity: 1 },
+      { name: 'Lumineon V', setCode: 'sv3pt5', number: '40', quantity: 1 },
     ]
   },
 ]
