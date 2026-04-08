@@ -20,6 +20,7 @@
       <div class="portfolio-header-actions">
         <router-link to="/search" class="btn btn-primary btn-sm">+ Add Card</router-link>
         <button class="btn btn-secondary btn-sm" @click="showAddSealed = true">+ Sealed</button>
+        <button class="btn btn-secondary btn-sm" @click="showBulkImport = true">↑ Import</button>
         <button class="btn btn-secondary btn-sm" :disabled="refreshing" @click="refreshPrices">
           <span v-if="refreshing" class="spinner spinner-sm"></span>
           <span v-else>↻ Prices</span>
@@ -221,6 +222,16 @@
       </div>
     </transition>
 
+    <!-- Bulk Import Modal -->
+    <transition name="fade">
+      <BulkImportModal
+        v-if="showBulkImport"
+        :portfolioId="portfolio.id"
+        @close="showBulkImport = false"
+        @imported="onBulkImported"
+      />
+    </transition>
+
     <!-- Add Sealed Modal -->
     <transition name="fade">
       <AddItemModal
@@ -310,6 +321,7 @@ import { fetchPrice } from '../services/priceServer'
 import PriceChart from '../components/PriceChart.vue'
 import PortfolioChart from '../components/PortfolioChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
+import BulkImportModal from '../components/BulkImportModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -325,6 +337,7 @@ const editName = ref('')
 const nameInputRef = ref(null)
 const selectedItem = ref(null)
 const showAddSealed = ref(false)
+const showBulkImport = ref(false)
 const editingItem = ref(null)
 const editForm = ref({})
 const confirmDelete = ref(false)
@@ -481,6 +494,11 @@ function saveCurrentValue() {
     const key = selectedItem.value.type === 'card' ? 'currentMarketPrice' : 'currentValue'
     store.updateItem(portfolio.value.id, selectedItem.value.id, { [key]: editCurrentValue.value })
   }
+}
+
+function onBulkImported(count) {
+  refreshStatus.value = `Imported ${count} card${count !== 1 ? 's' : ''}`
+  setTimeout(() => { refreshStatus.value = '' }, 3000)
 }
 
 function removeItem(item) {
