@@ -17,6 +17,9 @@
         <router-link to="/sets" class="nav-item" @click="sidebarOpen = false">
           <span class="nav-icon">◫</span> Browse Sets
         </router-link>
+        <router-link to="/decks" class="nav-item" @click="sidebarOpen = false">
+          <span class="nav-icon">🃏</span> Decks
+        </router-link>
       </nav>
 
       <div class="sidebar-section-label">Portfolios</div>

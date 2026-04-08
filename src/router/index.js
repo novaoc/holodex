@@ -5,6 +5,9 @@ const routes = [
   { path: '/search', name: 'Search', component: () => import('../views/SearchView.vue'), meta: { title: 'Search Cards', description: 'Search any Pokémon card across all sets. Live TCGPlayer prices and price history charts.' } },
   { path: '/sets', name: 'Sets', component: () => import('../views/SetsView.vue'), meta: { title: 'Browse Sets', description: 'Browse every Pokémon TCG set. View cards, release dates, and card counts.' } },
   { path: '/portfolio/:id', name: 'Portfolio', component: () => import('../views/PortfolioView.vue'), meta: { title: 'Portfolio', description: 'View portfolio items, value charts, gain/loss, and manage your collection.' } },
+  { path: '/decks', name: 'Decks', component: () => import('../views/DeckListView.vue'), meta: { title: 'Decks', description: 'Build and track Pokémon TCG decks. Compare against your collection and see what you still need.' } },
+  { path: '/decks/meta', name: 'MetaDecks', component: () => import('../views/MetaDecksView.vue'), meta: { title: 'Meta Decks', description: 'Browse popular competitive Pokémon TCG decks. Import with one click.' } },
+  { path: '/decks/:id', name: 'DeckBuilder', component: () => import('../views/DeckBuilderView.vue'), meta: { title: 'Deck Builder', description: 'Build your deck, track card ownership, and calculate costs.' } },
   { path: '/settings', name: 'Settings', component: () => import('../views/SettingsView.vue'), meta: { title: 'Settings', description: 'Export data, manage backups, transfer to device, and configure alerts.' } },
 ]
 
