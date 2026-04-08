@@ -78,37 +78,99 @@ export function getAllVariants(card) {
 }
 
 // Japanese sets via tcgdex
+// Japanese set ID → English name mapping (subset of most popular)
+const JP_EN_NAMES = {
+  PMCG1: 'Base Set', PMCG2: 'Jungle', PMCG3: 'Fossil',
+  neo1: 'Neo Genesis', neo2: 'Neo Discovery', neo3: 'Neo Revelation', neo4: 'Neo Destiny',
+  S1: 'Sword & Shield', S2: 'Rebel Clash', S3: 'Darkness Ablaze',
+  S4: 'Vivid Voltage', S4a: 'Shiny Star V', S5a: 'Battle Region',
+  S5I: 'Evolving Skies (JP)', S5R: 'Fusion Arts',
+  S6: 'Silver Tempest (JP)', S6a: 'Eevee Heroes', S6H: 'Lost Origin (JP)',
+  S7: 'Brilliant Stars (JP)', S7R: 'Dark Phantasma', S7D: 'Paradigm Trigger (JP)',
+  S8: 'Fusion Arts', S8a: '25th Anniversary', S8b: 'VMAX Climax',
+  S9: 'Star Birth', S9a: 'Battle Region',
+  S10: 'Space Juggler', S10a: 'Dark Fantasma', S10b: 'Pokémon GO',
+  S10D: 'Time Gazer', S10P: 'Space Juggler',
+  S11: 'Triplet Beat', S11a: 'Heat Red Arcana', S12: 'Paradigm Trigger',
+  S12a: 'VSTAR Universe',
+  SV1: 'Scarlet & Violet', SV1a: 'Triplet Beat', SV1S: 'Scarlet ex',
+  SV1V: 'Violet ex', SV2: 'Snow Hazard', SV2a: 'Clay Burst',
+  SV2D: 'Snow Hazard', SV2P: 'Clay Burst',
+  SV3: 'Ruler of the Black Flame', SV3a: 'Raging Surf',
+  SV4: 'Ancient Roar', SV4a: 'Raging Surf',
+  SV4K: 'Ancient Roar', SV4M: 'Future Flash',
+  SV5: 'Cyber Judge', SV5a: 'Wild Force',
+  SV5K: 'Wild Force', SV6: 'Stellar Miracle',
+  SV7: 'Super Electric Breaker', SV7a: 'Paradise Dragona',
+  SV8: 'Terastal Festival', SV8a: 'Terastal Festival ex',
+  SV9: 'Battle Partners', SV9a: 'Glory of Team Rocket',
+  SV10: 'Heat Wave Arena', SV10a: 'Glory of Team Rocket',
+  SVK: 'Shiny Treasure', SVLN: 'Legendary Heartbeat',
+  SVLS: 'Stellar Type Starter Set', SV11: 'Destined Rivals',
+  SV11B: 'Destined Rivals (Leaf)', SV11W: 'Destined Rivals (Wind)',
+  M1S: 'Mega Symphonia', M3: 'Munice Zero'
+}
+
+// Determine tcgdex CDN series prefix from set ID
+function jpSetToSeries(setId) {
+  const id = setId.toUpperCase()
+  if (id.startsWith('SV')) return 'SV'
+  if (id.startsWith('S') && !id.startsWith('SV') && !id.startsWith('ST')) return 'S'
+  if (id.startsWith('M')) return 'M'
+  return null // no images for older sets
+}
+
 export async function getJapaneseSets() {
   const url = 'https://api.tcgdex.net/v2/ja/sets'
   const data = await fetchWithCache(url)
-  // tcgdex returns array directly, normalize to match pokemontcg.io shape
+  // Sort newest first by release date
+  data.sort((a, b) => (b.releaseDate || '').localeCompare(a.releaseDate || ''))
   return data.map(s => ({
     id: s.id,
-    name: s.name,
-    series: '', // tcgdex doesn't group by series for JP
+    name: JP_EN_NAMES[s.id] || s.name,
+    nameJp: s.name,
+    series: '',
     total: s.cardCount?.total || 0,
     printedTotal: s.cardCount?.official || 0,
-    releaseDate: null,
+    releaseDate: s.releaseDate || null,
     images: { logo: null, symbol: null },
     _lang: 'ja',
-    _cardCount: s.cardCount
+    _series: jpSetToSeries(s.id),
+    _hasImages: !!jpSetToSeries(s.id)
   }))
 }
 
 export async function getJapaneseCardsBySet(setId, page = 1, pageSize = 36) {
-  // tcgdex returns all cards in set at once, paginate client-side
+  // Fetch the set to get card list (names, numbers)
   const url = `https://api.tcgdex.net/v2/ja/sets/${setId}`
-  const data = await fetchWithCache(url)
-  const allCards = (data.cards || []).map(c => ({
-    id: c.id,
-    name: c.name,
-    number: c.localId,
-    set: { id: setId, name: data.name },
-    images: c.image ? { small: c.image + '/low.webp', large: c.image + '/high.webp' } : { small: null, large: null },
-    supertype: 'Pokémon',
-    _lang: 'ja',
-    _hasImage: !!c.image
-  }))
+  const setData = await fetchWithCache(url)
+  const series = jpSetToSeries(setId)
+  const enName = JP_EN_NAMES[setId] || setData.name
+  
+  let rawCards = setData.cards || []
+  
+  // Some sets (e.g. SV1a) return empty cards array in set listing
+  // Fall back to global card list filtered by set ID prefix
+  if (rawCards.length === 0 && setData.cardCount?.total > 0) {
+    const allUrl = 'https://api.tcgdex.net/v2/ja/cards'
+    const allCards = await fetchWithCache(allUrl)
+    rawCards = allCards.filter(c => c.id.startsWith(setId + '-'))
+  }
+  
+  const allCards = rawCards.map(c => {
+    const localId = c.localId || c.id?.split('-').pop() || ''
+    const imageBase = series ? `https://assets.tcgdex.net/ja/${series}/${setId}/${localId}` : null
+    return {
+      id: c.id,
+      name: c.name,
+      number: localId,
+      set: { id: setId, name: enName },
+      images: imageBase ? { small: imageBase + '/low.webp', large: imageBase + '/high.webp' } : { small: null, large: null },
+      supertype: 'Pokémon',
+      _lang: 'ja',
+      _hasImage: !!imageBase
+    }
+  })
   const start = (page - 1) * pageSize
   const paged = allCards.slice(start, start + pageSize)
   return { data: paged, totalCount: allCards.length }
@@ -137,7 +199,15 @@ export async function getJapaneseCardDetail(cardId) {
     name: data.name,
     number: data.localId,
     set: { id: data.set?.id, name: data.set?.name },
-    images: data.image ? { small: data.image + '/low.webp', large: data.image + '/high.webp' } : { small: null, large: null },
+    images: (() => {
+      const imgBase = data.image || (() => {
+        const setId = data.set?.id
+        const localId = data.localId
+        const series = setId ? jpSetToSeries(setId) : null
+        return series ? `https://assets.tcgdex.net/ja/${series}/${setId}/${localId}` : null
+      })()
+      return imgBase ? { small: imgBase + '/low.webp', large: imgBase + '/high.webp' } : { small: null, large: null }
+    })(),
     supertype: data.category || 'Pokémon',
     subtypes: data.stage ? [data.stage] : [],
     types: data.types || [],

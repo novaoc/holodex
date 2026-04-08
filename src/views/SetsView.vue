@@ -55,6 +55,7 @@
             </div>
             <div class="set-info">
               <div class="set-name">{{ set.name }}</div>
+              <div v-if="set.nameJp && set.nameJp !== set.name" class="set-name-jp">{{ set.nameJp }}</div>
               <div class="set-meta">
                 <template v-if="set.series">
                   <span class="set-series">{{ set.series }}</span>
@@ -445,6 +446,7 @@ onMounted(loadSets)
 
 .set-info { flex: 1; min-width: 0; }
 .set-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-name-jp { font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .set-meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 3px; font-size: 11px; color: var(--text-muted); }
 .set-dot { color: var(--border); }
 .set-series { color: var(--text-secondary); }
