@@ -31,7 +31,7 @@
           <div class="sync-text-area">
             <textarea
               ref="sendTextarea"
-              :value="encodedData"
+              :value="compressedBase64 || encodedData"
               readonly
               class="input sync-textarea"
               rows="4"
@@ -103,6 +103,35 @@ const copied = ref(false)
 const qrCanvas = ref(null)
 const sendTextarea = ref(null)
 const qrTooLarge = ref(false)
+const compressedBase64 = ref('')
+
+// Compress string with gzip → base64
+async function compressToBase64(str) {
+  const bytes = new TextEncoder().encode(str)
+  const cs = new CompressionStream('gzip')
+  const writer = cs.writable.getWriter()
+  writer.write(bytes)
+  writer.close()
+  const compressed = await new Response(cs.readable).arrayBuffer()
+  // Convert to base64
+  const arr = new Uint8Array(compressed)
+  let binary = ''
+  for (let i = 0; i < arr.length; i++) binary += String.fromCharCode(arr[i])
+  return btoa(binary)
+}
+
+// Decompress base64 → original string
+async function decompressFromBase64(b64) {
+  const binary = atob(b64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const ds = new DecompressionStream('gzip')
+  const writer = ds.writable.getWriter()
+  writer.write(bytes)
+  writer.close()
+  const decompressed = await new Response(ds.readable).arrayBuffer()
+  return new TextDecoder().decode(decompressed)
+}
 
 // Build backup data WITHOUT triggering download (exportBackup creates a file download)
 function buildBackupData() {
@@ -173,20 +202,36 @@ const dataSize = computed(() => {
 
 async function generateQR() {
   if (!qrCanvas.value) return
-  const data = encodedData.value
-  if (data.length > 3500) {
-    qrTooLarge.value = true
-    return
-  }
-  qrTooLarge.value = false
   try {
-    await QRCode.toCanvas(qrCanvas.value, data, {
+    // Compress the JSON before encoding into QR
+    const jsonStr = encodedData.value
+    const bytes = new TextEncoder().encode(jsonStr)
+    const cs = new CompressionStream('gzip')
+    const writer = cs.writable.getWriter()
+    writer.write(bytes)
+    writer.close()
+    const compressed = await new Response(cs.readable).arrayBuffer()
+    const compressedArr = new Uint8Array(compressed)
+
+    // Also store base64 version for clipboard
+    let binary = ''
+    for (let i = 0; i < compressedArr.length; i++) binary += String.fromCharCode(compressedArr[i])
+    compressedBase64.value = btoa(binary)
+
+    // QR with binary (byte mode) — version 40 + L correction = ~2953 bytes capacity
+    if (compressedArr.length > 2900) {
+      qrTooLarge.value = true
+      return
+    }
+    qrTooLarge.value = false
+    await QRCode.toCanvas(qrCanvas.value, compressedArr, {
       width: 280,
       margin: 2,
       color: { dark: '#f8f8f2', light: '#282a36' },
       errorCorrectionLevel: 'L',
     })
-  } catch {
+  } catch (e) {
+    console.error('QR generation failed:', e)
     qrTooLarge.value = true
   }
 }
@@ -197,7 +242,8 @@ function selectText() {
 
 async function copyData() {
   try {
-    await navigator.clipboard.writeText(encodedData.value)
+    const text = compressedBase64.value || encodedData.value
+    await navigator.clipboard.writeText(text)
     copied.value = true
     setTimeout(() => { copied.value = false }, 2000)
   } catch {
@@ -210,20 +256,31 @@ const receiveInput = ref('')
 const parseError = ref('')
 const parsedBackup = ref(null)
 
-watch(receiveInput, (val) => {
+watch(receiveInput, async (val) => {
   parseError.value = ''
   parsedBackup.value = null
   if (!val.trim()) return
+
+  const input = val.trim()
+
+  // Try parsing as raw JSON first (backwards compat)
   try {
-    const data = JSON.parse(val.trim())
+    const data = JSON.parse(input)
     const err = validateBackup(data)
-    if (err) {
-      parseError.value = err
-      return
-    }
+    if (err) { parseError.value = err; return }
+    parsedBackup.value = data
+    return
+  } catch {}
+
+  // Try decompressing from base64 (gzip compressed)
+  try {
+    const jsonStr = await decompressFromBase64(input)
+    const data = JSON.parse(jsonStr)
+    const err = validateBackup(data)
+    if (err) { parseError.value = err; return }
     parsedBackup.value = data
   } catch {
-    parseError.value = 'Invalid JSON — make sure you copied the full data'
+    parseError.value = 'Invalid data — make sure you copied the full text'
   }
 })
 
