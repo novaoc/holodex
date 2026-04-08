@@ -167,14 +167,14 @@
               <div class="panel-card-type">{{ selectedCard.supertype }} · {{ selectedCard.subtypes?.join(', ') }}</div>
 
               <div class="price-list mt-3" v-if="selectedCard.tcgplayer?.prices">
-                <div class="price-list-title">TCGPlayer Prices</div>
+                <div class="price-list-title">{{ selectedCard._lang === 'ja' ? 'CardMarket (EUR)' : 'TCGPlayer Prices' }}</div>
                 <div
                   v-for="(vals, key) in selectedCard.tcgplayer.prices"
                   :key="key"
                   class="price-row"
                 >
-                  <span class="price-variant">{{ formatVariantLabel(key) }}</span>
-                  <span class="price-val">${{ vals.market?.toFixed(2) || vals.mid?.toFixed(2) || '—' }}</span>
+                  <span class="price-variant">{{ selectedCard._lang === 'ja' ? 'Market' : formatVariantLabel(key) }}</span>
+                  <span class="price-val">€{{ vals.market?.toFixed(2) || vals.mid?.toFixed(2) || '—' }}</span>
                 </div>
               </div>
 
@@ -366,6 +366,11 @@ function openAddModal(card) {
 }
 
 function getPrice(card) {
+  // For Japanese cards, price comes from detail fetch (CardMarket)
+  if (card._lang === 'ja' && card.tcgplayer?.prices) {
+    const vals = Object.values(card.tcgplayer.prices)[0]
+    return vals?.market || vals?.mid || null
+  }
   const r = getMarketPrice(card)
   return r?.price || null
 }

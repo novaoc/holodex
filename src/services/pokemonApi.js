@@ -104,9 +104,10 @@ export async function getJapaneseCardsBySet(setId, page = 1, pageSize = 36) {
     name: c.name,
     number: c.localId,
     set: { id: setId, name: data.name },
-    images: { small: null, large: null },
+    images: c.image ? { small: c.image + '/low.webp', large: c.image + '/high.webp' } : { small: null, large: null },
     supertype: 'Pokémon',
-    _lang: 'ja'
+    _lang: 'ja',
+    _hasImage: !!c.image
   }))
   const start = (page - 1) * pageSize
   const paged = allCards.slice(start, start + pageSize)
@@ -116,12 +117,26 @@ export async function getJapaneseCardsBySet(setId, page = 1, pageSize = 36) {
 export async function getJapaneseCardDetail(cardId) {
   const url = `https://api.tcgdex.net/v2/ja/cards/${cardId}`
   const data = await fetchWithCache(url)
+  
+  // Build prices from cardmarket if available
+  let tcgPrices = null
+  const cm = data.pricing?.cardmarket
+  if (cm && (cm.avg || cm.trend)) {
+    tcgPrices = {
+      normal: {
+        market: cm.trend || cm.avg || null,
+        low: cm.low || null,
+        mid: cm.avg || null
+      }
+    }
+  }
+  
   return {
     id: data.id,
     name: data.name,
     number: data.localId,
     set: { id: data.set?.id, name: data.set?.name },
-    images: { small: null, large: null },
+    images: data.image ? { small: data.image + '/low.webp', large: data.image + '/high.webp' } : { small: null, large: null },
     supertype: data.category || 'Pokémon',
     subtypes: data.stage ? [data.stage] : [],
     types: data.types || [],
@@ -135,7 +150,7 @@ export async function getJapaneseCardDetail(cardId) {
     })),
     weaknesses: data.weaknesses || [],
     retreatCost: data.retreat != null ? Array(data.retreat).fill(undefined).map((_, i) => i) : [],
-    tcgplayer: { prices: null },
+    tcgplayer: { prices: tcgPrices },
     _lang: 'ja'
   }
 }
