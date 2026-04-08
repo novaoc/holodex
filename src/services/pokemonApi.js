@@ -230,11 +230,15 @@ export async function getJapaneseCardsBySet(setId, page = 1, pageSize = 36) {
   let rawCards = setData.cards || []
   
   // Some sets (e.g. SV1a) return empty cards array in set listing
-  // Fall back to global card list filtered by set ID prefix
+  // Fall back to fetching individual card details by ID pattern
   if (rawCards.length === 0 && setData.cardCount?.total > 0) {
-    const allUrl = 'https://api.tcgdex.net/v2/ja/cards'
-    const allCards = await fetchWithCache(allUrl)
-    rawCards = allCards.filter(c => c.id.startsWith(setId + '-'))
+    const total = setData.cardCount.total
+    // Generate card IDs and fetch only needed pages
+    rawCards = []
+    for (let i = 1; i <= total; i++) {
+      const localId = String(i).padStart(3, '0')
+      rawCards.push({ id: `${setId}-${localId}`, localId, name: `Card ${localId}` })
+    }
   }
   
   const allCards = rawCards.map(c => {

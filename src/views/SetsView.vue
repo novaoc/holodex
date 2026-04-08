@@ -48,6 +48,7 @@
                 :alt="set.name"
                 class="set-logo"
                 loading="lazy"
+                decoding="async"
                 @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display=''"
               />
               <span class="set-logo-placeholder" :class="{ 'set-logo-jp': set._lang === 'ja' }" :style="set.images?.logo ? 'display:none' : ''">
