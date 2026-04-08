@@ -19,7 +19,7 @@ export async function searchCards(query, page = 1, pageSize = 20) {
   // Replace spaces with * wildcards so "mega charizard" → "mega*charizard"
   const term = query.replace(/\s+/g, '*')
   const encoded = encodeURIComponent(term)
-  const url = `${BASE_URL}/cards?q=name:${encoded}*&page=${page}&pageSize=${pageSize}&orderBy=-set.releaseDate`
+  const url = `${BASE_URL}/cards?q=name:${encoded}*&page=${page}&pageSize=${pageSize}&orderBy=-set.releaseDate&select=id,name,number,set,supertype,rarity,tcgplayer,images`
   const data = await fetchWithCache(url)
   return data
 }
@@ -31,13 +31,24 @@ export async function getCard(id) {
 }
 
 export async function getSets() {
-  const url = `${BASE_URL}/sets?orderBy=-releaseDate`
+  // Persist sets to localStorage — they rarely change
+  const LS_KEY = 'holodex_en_sets'
+  const LS_TS = 'holodex_en_sets_ts'
+  const cached = localStorage.getItem(LS_KEY)
+  const ts = localStorage.getItem(LS_TS)
+  if (cached && ts && Date.now() - Number(ts) < 24 * 60 * 60 * 1000) {
+    return JSON.parse(cached)
+  }
+  const url = `${BASE_URL}/sets?orderBy=-releaseDate&select=id,name,series,total,printedTotal,releaseDate,images`
   const data = await fetchWithCache(url)
-  return data.data
+  const sets = data.data
+  localStorage.setItem(LS_KEY, JSON.stringify(sets))
+  localStorage.setItem(LS_TS, String(Date.now()))
+  return sets
 }
 
 export async function getCardsBySet(setId, page = 1, pageSize = 36) {
-  const url = `${BASE_URL}/cards?q=set.id:${setId}&page=${page}&pageSize=${pageSize}&orderBy=number`
+  const url = `${BASE_URL}/cards?q=set.id:${setId}&page=${page}&pageSize=${pageSize}&orderBy=number&select=id,name,number,set,supertype,rarity,tcgplayer,images`
   const data = await fetchWithCache(url)
   return data
 }
@@ -202,10 +213,18 @@ function sortJapaneseSets(sets) {
 }
 
 export async function getJapaneseSets() {
+  // Persist to localStorage — JP sets rarely change
+  const LS_KEY = 'holodex_ja_sets'
+  const LS_TS = 'holodex_ja_sets_ts'
+  const cached = localStorage.getItem(LS_KEY)
+  const ts = localStorage.getItem(LS_TS)
+  if (cached && ts && Date.now() - Number(ts) < 24 * 60 * 60 * 1000) {
+    return JSON.parse(cached)
+  }
   const url = 'https://api.tcgdex.net/v2/ja/sets'
   const data = await fetchWithCache(url)
   sortJapaneseSets(data)
-  return data.map(s => ({
+  const sets = data.map(s => ({
     id: s.id,
     name: JP_EN_NAMES[s.id] || s.name,
     nameJp: s.name,
@@ -218,6 +237,9 @@ export async function getJapaneseSets() {
     _series: jpSetToSeries(s.id),
     _hasImages: !!jpSetToSeries(s.id)
   }))
+  localStorage.setItem(LS_KEY, JSON.stringify(sets))
+  localStorage.setItem(LS_TS, String(Date.now()))
+  return sets
 }
 
 export async function getJapaneseCardsBySet(setId, page = 1, pageSize = 36) {
