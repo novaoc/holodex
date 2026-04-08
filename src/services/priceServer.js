@@ -175,6 +175,7 @@ export async function searchSealed(query) {
       url: p.id ? `${PC_BASE}/game/${p.id}` : '',
       slug: p.id || '',
       price: parsePrice(p.price1),
+      image: p.imageUri ? `${PC_BASE}${p.imageUri}` : '',
     }))
 
   cacheSet(cacheKey, results)

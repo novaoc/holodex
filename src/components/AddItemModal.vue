@@ -96,8 +96,11 @@
               :class="{ selected: form.name === r.name && form.setName === r.set }"
               @click="selectSealed(r)"
             >
-              <div class="sealed-result-name">{{ r.name }}</div>
-              <div class="sealed-result-set">{{ r.set }}</div>
+              <img v-if="r.image" :src="r.image" class="sealed-result-img" loading="lazy" />
+              <div class="sealed-result-info">
+                <div class="sealed-result-name">{{ r.name }}</div>
+                <div class="sealed-result-set">{{ r.set }}</div>
+              </div>
               <div class="sealed-result-price text-accent" v-if="r.price">${{ r.price.toFixed(2) }}</div>
               <div class="sealed-result-price text-muted" v-else>—</div>
             </div>
@@ -106,8 +109,13 @@
           <!-- Selected product preview -->
           <div v-if="form.name" class="sealed-selected mb-3">
             <div class="sealed-selected-label">Selected</div>
-            <div class="sealed-selected-name">{{ form.name }}</div>
-            <div class="sealed-selected-set">{{ form.setName }}</div>
+            <div class="sealed-selected-row">
+              <img v-if="form.imageUrl" :src="form.imageUrl" class="sealed-selected-img" />
+              <div>
+                <div class="sealed-selected-name">{{ form.name }}</div>
+                <div class="sealed-selected-set">{{ form.setName }}</div>
+              </div>
+            </div>
             <button class="btn btn-ghost btn-sm mt-1" style="font-size:11px" @click="clearSealed">✕ Clear</button>
           </div>
 
@@ -229,6 +237,7 @@ function selectSealed(result) {
   form.value.name = result.name
   form.value.setName = result.set
   form.value.pcUrl = result.url
+  form.value.imageUrl = result.image || ''
   if (result.price) form.value.currentValue = result.price
   sealedResults.value = []
 }
@@ -238,12 +247,14 @@ function clearSealed() {
   form.value.setName = ''
   form.value.currentValue = null
   form.value.pcUrl = ''
+  form.value.imageUrl = ''
 }
 
 const form = ref({
   name: '',
   setName: '',
   pcUrl: '',
+  imageUrl: '',
   sealedType: 'booster_box',
   priceVariant: '',
   gradingCompany: 'PSA',
@@ -325,6 +336,7 @@ function submit() {
       name: form.value.name,
       setName: form.value.setName,
       pcUrl: form.value.pcUrl,
+      imageUrl: form.value.imageUrl,
       sealedType: form.value.sealedType,
       currentValue: form.value.currentValue || form.value.purchasePrice || 0,
     }
@@ -415,7 +427,16 @@ watch(() => props.card, () => {
 .sealed-result:last-child { border-bottom: none; }
 .sealed-result:hover { background: var(--bg-hover); }
 .sealed-result.selected { background: var(--accent-dim); }
-.sealed-result-name { font-size: 13px; font-weight: 600; flex: 1; min-width: 0; }
+.sealed-result-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
+.sealed-result-info { flex: 1; min-width: 0; }
+.sealed-result-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sealed-result-set { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
 .sealed-result-price { font-size: 13px; font-weight: 700; flex-shrink: 0; margin-left: 8px; }
 
@@ -426,6 +447,15 @@ watch(() => props.card, () => {
   padding: 10px 12px;
 }
 .sealed-selected-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 2px; }
+.sealed-selected-row { display: flex; align-items: center; gap: 12px; }
+.sealed-selected-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  flex-shrink: 0;
+}
 .sealed-selected-name { font-size: 14px; font-weight: 600; }
 .sealed-selected-set { font-size: 12px; color: var(--text-secondary); }
 

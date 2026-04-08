@@ -123,6 +123,12 @@
                     class="item-thumb"
                     loading="lazy"
                   />
+                  <img
+                    v-else-if="item.imageUrl"
+                    :src="item.imageUrl"
+                    class="item-thumb item-thumb-sealed"
+                    loading="lazy"
+                  />
                   <div class="item-sealed-icon" v-else>📦</div>
                   <div>
                     <div class="item-name">{{ getItemName(item) }}</div>
@@ -167,8 +173,8 @@
           <button class="btn btn-ghost btn-icon" @click="selectedItem = null">✕</button>
         </div>
         <div class="panel-body-row">
-          <div class="panel-left" v-if="selectedItem.cardData?.images?.small">
-            <img :src="selectedItem.cardData.images.large || selectedItem.cardData.images.small" class="panel-img" />
+          <div class="panel-left" v-if="selectedItem.cardData?.images?.small || selectedItem.imageUrl">
+            <img :src="selectedItem.cardData?.images?.large || selectedItem.cardData?.images?.small || selectedItem.imageUrl" class="panel-img" />
           </div>
           <div class="panel-right">
             <div class="panel-info-grid">
@@ -651,6 +657,7 @@ function deletePortfolio() {
 
 .item-name-cell { display: flex; align-items: center; gap: 10px; }
 .item-thumb { width: 36px; height: 50px; object-fit: contain; border-radius: 3px; flex-shrink: 0; }
+.item-thumb-sealed { background: var(--bg-primary); border-radius: 4px; }
 .item-sealed-icon { width: 36px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
 .item-name { font-size: 13px; font-weight: 600; }
 .item-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
