@@ -268,6 +268,14 @@ onMounted(() => {
   gap: 12px;
   flex-shrink: 0;
 }
+
+/* iOS PWA — pad below the status bar */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .topbar {
+    padding-top: env(safe-area-inset-top);
+    min-height: calc(var(--header-height) + env(safe-area-inset-top));
+  }
+}
 .topbar-breadcrumb {
   flex: 1;
   font-size: 15px;
@@ -311,5 +319,15 @@ onMounted(() => {
   .sidebar-close { display: flex; }
   .hamburger { display: flex; }
   .main-content { padding: 16px; }
+}
+
+/* iOS PWA safe areas */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .sidebar-logo {
+    padding-top: env(safe-area-inset-top);
+  }
+  .main-content {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
 }
 </style>

@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { inject } from '@vercel/analytics'
+import { injectSpeedInsights } from '@vercel/speed-insights'
 import VueApexCharts from 'vue3-apexcharts'
 import router from './router'
 import App from './App.vue'
@@ -13,3 +14,4 @@ app.use(VueApexCharts)
 app.mount('#app')
 
 inject()
+injectSpeedInsights()
