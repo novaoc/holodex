@@ -63,6 +63,14 @@ Built by [Nova](https://github.com/novaoc).
 - Hides automatically if already installed (`display-mode: standalone`)
 - Remembers dismissal in localStorage
 
+### SEO
+- HTML5 history mode routing (clean URLs: `/search`, `/sets` instead of `/#/search`)
+- Per-route page titles (e.g., "Search Cards — Holodex")
+- Per-route meta descriptions updated on navigation
+- Dynamic OG tags for social sharing per page
+- `robots.txt` with sitemap reference
+- `sitemap.xml` with all public routes
+
 ### Data & Privacy
 - All data stored locally in your browser (localStorage)
 - No accounts, no tracking, no server — everything runs client-side
