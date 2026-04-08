@@ -14,6 +14,9 @@
         <router-link to="/search" class="nav-item" @click="sidebarOpen = false">
           <span class="nav-icon">⌕</span> Search Cards
         </router-link>
+        <router-link to="/sets" class="nav-item" @click="sidebarOpen = false">
+          <span class="nav-icon">◫</span> Browse Sets
+        </router-link>
       </nav>
 
       <div class="sidebar-section-label">Portfolios</div>
@@ -122,6 +125,7 @@ const portfolioColors = [
 const currentPageTitle = computed(() => {
   if (route.name === 'Dashboard') return 'Dashboard'
   if (route.name === 'Search') return 'Search Cards'
+  if (route.name === 'Sets') return 'Browse Sets'
   if (route.name === 'Settings') return 'Settings'
   if (route.name === 'Portfolio') {
     const p = store.portfolios.find(p => p.id === route.params.id)
