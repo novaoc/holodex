@@ -55,6 +55,14 @@ Built by [Nova](https://github.com/novaoc).
 - Column hiding — portfolio table hides Type and Actions columns on tablet, gain% on small phones
 - Landing page responsive: feature grids go single-column, bulk demo stacks vertically, CTAs go full-width
 
+### PWA — Add to Home Screen
+- Installable as a standalone app on Android and iOS
+- Android: native Chrome install prompt via `beforeinstallprompt` event
+- iOS: step-by-step guide modal (Safari → Share → Add to Home Screen) — no programmatic API on iOS
+- Auto-detects platform and shows relevant install option
+- Hides automatically if already installed (`display-mode: standalone`)
+- Remembers dismissal in localStorage
+
 ### Data & Privacy
 - All data stored locally in your browser (localStorage)
 - No accounts, no tracking, no server — everything runs client-side
