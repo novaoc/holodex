@@ -120,11 +120,49 @@ function jpSetToSeries(setId) {
   return null // no images for older sets
 }
 
+// Sort Japanese sets by era (newest first) using ID patterns
+function sortJapaneseSets(sets) {
+  const eraOrder = { SV: 0, S: 1, M: 2, PCG: 3, PMCG: 4, neo: 5, E: 6 }
+  function getSortKey(id) {
+    const upper = id.toUpperCase()
+    // SV series: SV9 > SV8 > SV4a > SV1a
+    if (upper.startsWith('SV')) {
+      const rest = upper.slice(2)
+      const num = parseInt(rest) || 0
+      const suffix = rest.replace(String(num), '')
+      return [0, -num, suffix] // newer SV numbers first
+    }
+    // S series: S12 > S9 > S4a
+    if (upper.startsWith('S') && !upper.startsWith('SV') && !upper.startsWith('ST')) {
+      const rest = upper.slice(1)
+      const num = parseInt(rest) || 0
+      const suffix = rest.replace(String(num), '')
+      return [1, -num, suffix]
+    }
+    // M series
+    if (upper.startsWith('M')) {
+      const num = parseInt(upper.slice(1)) || 0
+      return [2, -num, '']
+    }
+    // Older series: push to end
+    const era = eraOrder[upper.replace(/\d.*$/, '').replace(/[a-z].*$/, '')] || 9
+    return [era, 0, '']
+  }
+  sets.sort((a, b) => {
+    const ka = getSortKey(a.id)
+    const kb = getSortKey(b.id)
+    for (let i = 0; i < 3; i++) {
+      if (ka[i] !== kb[i]) return ka[i] - kb[i]
+    }
+    return 0
+  })
+  return sets
+}
+
 export async function getJapaneseSets() {
   const url = 'https://api.tcgdex.net/v2/ja/sets'
   const data = await fetchWithCache(url)
-  // Sort newest first by release date
-  data.sort((a, b) => (b.releaseDate || '').localeCompare(a.releaseDate || ''))
+  sortJapaneseSets(data)
   return data.map(s => ({
     id: s.id,
     name: JP_EN_NAMES[s.id] || s.name,

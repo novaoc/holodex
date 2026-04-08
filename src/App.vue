@@ -66,6 +66,11 @@
             <component :is="Component" />
           </transition>
         </router-view>
+        <div class="app-footer">
+          <router-link to="/terms" class="app-footer-link">Terms &amp; Conditions</router-link>
+          <span class="app-footer-dot">·</span>
+          <a href="https://github.com/novaoc/holodex" target="_blank" rel="noopener" class="app-footer-link">GitHub</a>
+        </div>
       </main>
     </div>
 
@@ -133,6 +138,7 @@ const currentPageTitle = computed(() => {
   if (route.name === 'Search') return 'Search Cards'
   if (route.name === 'Sets') return 'Browse Sets'
   if (route.name === 'Settings') return 'Settings'
+  if (route.name === 'Terms') return 'Terms & Conditions'
   if (route.name === 'Portfolio') {
     const p = store.portfolios.find(p => p.id === route.params.id)
     return p?.name || 'Portfolio'
@@ -293,6 +299,22 @@ onMounted(() => {
   overflow-y: auto;
   padding: 24px;
 }
+
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 0 8px;
+  margin-top: 16px;
+}
+.app-footer-link {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.app-footer-link:hover { color: var(--text-secondary); text-decoration: none; }
+.app-footer-dot { font-size: 11px; color: var(--text-muted); }
 
 /* Color picker */
 .color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; }

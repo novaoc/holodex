@@ -122,8 +122,9 @@
                 :alt="card.name"
                 loading="lazy"
                 class="card-img"
+                @error="$event.target.style.display='none'; $event.target.nextElementSibling.style.display='flex'"
               />
-              <div v-else class="card-img-placeholder">
+              <div class="card-img-placeholder" :style="card.images?.small ? 'display:none' : ''">
                 <span>{{ card.name }}</span>
                 <span class="card-img-num">#{{ card.number }}</span>
               </div>
@@ -161,7 +162,11 @@
         </div>
         <div class="panel-body">
           <div class="panel-top">
-            <img :src="selectedCard.images?.large || selectedCard.images?.small" class="panel-card-img" />
+            <img v-if="selectedCard.images?.large || selectedCard.images?.small" :src="selectedCard.images?.large || selectedCard.images?.small" class="panel-card-img" @error="$event.target.style.display='none'" />
+            <div v-else class="panel-card-img-placeholder">
+              <span>{{ selectedCard.name }}</span>
+              <span style="font-size:12px;color:var(--text-muted)">#{{ selectedCard.number }}</span>
+            </div>
             <div class="panel-card-info">
               <div class="panel-card-set">{{ selectedCard.set?.name }} · #{{ selectedCard.number }}</div>
               <div class="panel-card-rarity">{{ selectedCard.rarity }}</div>
@@ -547,6 +552,12 @@ onMounted(loadSets)
 .panel-body { padding: 20px 24px; }
 .panel-top { display: flex; gap: 24px; margin-bottom: 24px; }
 .panel-card-img { width: 140px; min-width: 140px; border-radius: 8px; box-shadow: var(--shadow); }
+.panel-card-img-placeholder {
+  width: 140px; min-width: 140px; height: 195px; border-radius: 8px;
+  background: var(--bg-primary); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px;
+  font-size: 13px; font-weight: 600; text-align: center; padding: 12px;
+}
 .panel-card-info { flex: 1; }
 .panel-card-set { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
 .panel-card-rarity { font-size: 12px; color: var(--accent); }
