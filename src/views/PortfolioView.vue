@@ -24,6 +24,7 @@
           <span v-if="refreshing" class="spinner spinner-sm"></span>
           <span v-else>↻ Prices</span>
         </button>
+        <span v-if="refreshStatus" class="text-muted" style="font-size:12px;align-self:center">{{ refreshStatus }}</span>
         <button class="btn btn-secondary btn-sm" @click="exportPortfolio">↓ Export</button>
         <button class="btn btn-danger btn-sm" @click="confirmDelete = true">Delete</button>
       </div>
@@ -299,7 +300,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel } from '../utils/excel'
@@ -487,13 +488,31 @@ function removeItem(item) {
   }
 }
 
+function ebayQueryForItem(item) {
+  if (item.type === 'graded') {
+    const name = item.cardData?.name || item.name || ''
+    const company = item.gradingCompany || 'PSA'
+    const grade = item.grade || '10'
+    return `${name} ${company} ${grade} pokemon`.trim()
+  }
+  if (item.type === 'sealed') {
+    return `${item.name || ''} pokemon sealed`.trim()
+  }
+  return null
+}
+
 async function refreshPrices() {
   if (!portfolio.value || refreshing.value) return
   refreshing.value = true
+  refreshStatus.value = ''
+
   const cardItems = portfolio.value.items.filter(i => i.type === 'card' && i.cardId)
+  const ebayItems = portfolio.value.items.filter(i => i.type === 'graded' || i.type === 'sealed')
   let updated = 0
-  await Promise.allSettled(
-    cardItems.map(async item => {
+
+  await Promise.allSettled([
+    // Raw cards — pokemontcg.io
+    ...cardItems.map(async item => {
       try {
         const card = await getCard(item.cardId)
         const priceResult = getMarketPrice(card, item.priceVariant)
@@ -503,10 +522,29 @@ async function refreshPrices() {
           updated++
         }
       } catch {}
+    }),
+    // Graded slabs + sealed — eBay sold listings
+    ...ebayItems.map(async item => {
+      const query = ebayQueryForItem(item)
+      if (!query) return
+      try {
+        const result = await fetchEbayPrice(query, 12)
+        if (result?.median) {
+          store.updateItem(portfolio.value.id, item.id, { currentValue: result.median })
+          updated++
+        }
+      } catch {}
     })
-  )
+  ])
+
+  refreshStatus.value = updated > 0 ? `Updated ${updated} item${updated > 1 ? 's' : ''}` : 'No updates'
+  setTimeout(() => { refreshStatus.value = '' }, 3000)
   refreshing.value = false
 }
+
+onMounted(() => {
+  refreshPrices()
+})
 
 function exportPortfolio() {
   if (portfolio.value) exportPortfolioToExcel(portfolio.value)
