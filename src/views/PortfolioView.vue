@@ -227,6 +227,7 @@
         v-if="showAddSealed"
         :card="null"
         :defaultPortfolioId="portfolio.id"
+        defaultType="sealed"
         @close="showAddSealed = false"
         @added="showAddSealed = false"
       />

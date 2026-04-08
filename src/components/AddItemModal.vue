@@ -7,8 +7,8 @@
       </div>
 
       <div class="modal-body">
-        <!-- Type selector -->
-        <div class="type-tabs mb-4">
+        <!-- Type selector — hidden when a default type is locked in -->
+        <div v-if="!props.defaultType" class="type-tabs mb-4">
           <button
             v-for="t in types"
             :key="t.value"
@@ -178,13 +178,14 @@ import { searchSealed } from '../services/priceServer'
 
 const props = defineProps({
   card: { type: Object, default: null },
-  defaultPortfolioId: { type: String, default: null }
+  defaultPortfolioId: { type: String, default: null },
+  defaultType: { type: String, default: null }
 })
 
 const emit = defineEmits(['close', 'added'])
 const store = usePortfolioStore()
 
-const itemType = ref('card')
+const itemType = ref(props.defaultType || 'card')
 const types = [
   { value: 'card', label: 'Raw Card', icon: '🃏' },
   { value: 'graded', label: 'Graded Slab', icon: '🏆' },
