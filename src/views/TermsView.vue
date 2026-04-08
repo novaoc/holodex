@@ -83,7 +83,8 @@
           <li><strong>tcgdex.net</strong> — Japanese card data, set information, and
             card images</li>
           <li><strong>PriceCharting</strong> — graded and sealed product pricing</li>
-          <li><strong>Vercel</strong> — hosting and CDN</li>
+          <li><strong>Vercel</strong> — hosting, CDN, and anonymized analytics
+            (page views, Core Web Vitals — no cookies, no cross-site tracking)</li>
           <li><strong>jsonbin.io</strong> — optional cross-device sync (only if you
             configure it)</li>
           <li><strong>GitHub</strong> — source code hosting and meta deck data</li>
@@ -207,8 +208,9 @@
         <h2>2. Data We Collect</h2>
         <p>
           <strong>We do not collect any personal data.</strong> Holodex has no server,
-          no analytics, and no tracking scripts. There are no cookies, no user accounts,
-          and no login systems.
+          no user accounts, and no login systems. There are no cookies set by the
+          application itself. However, we do use Vercel Analytics and Speed Insights for
+          anonymized usage metrics — see Section 6 for details.
         </p>
       </section>
 
@@ -256,12 +258,31 @@
       </section>
 
       <section>
-        <h2>6. Analytics &amp; Tracking</h2>
+        <h2>6. Analytics &amp; Performance Monitoring</h2>
         <p>
-          Holodex does not use analytics, tracking pixels, fingerprinting, or
-          advertising networks. We do not track your behavior, searches, or
-          interactions. Our hosting provider (Vercel) may collect standard
-          traffic data as part of normal CDN operations.
+          Holodex uses <strong>Vercel Analytics</strong> and <strong>Vercel Speed
+          Insights</strong> to understand how the site is used and to monitor
+          performance. These are privacy-focused tools provided by our hosting
+          provider. The data collected includes:
+        </p>
+        <ul>
+          <li><strong>Page views</strong> — which pages are visited (URL paths)</li>
+          <li><strong>Referrer</strong> — how you arrived at the site</li>
+          <li><strong>Country / region</strong> — derived from your IP address, which
+            is anonymized and never stored by Vercel Analytics</li>
+          <li><strong>Browser and device info</strong> — user agent string</li>
+          <li><strong>Core Web Vitals</strong> — performance metrics like Largest
+            Contentful Paint (LCP), First Input Delay (FID), Cumulative Layout Shift
+            (CLS), and Interaction to Next Paint (INP)</li>
+          <li><strong>Connection type</strong> — approximate network speed</li>
+        </ul>
+        <p>
+          Vercel Analytics does not use cookies, does not track users across sites,
+          and does not collect personally identifiable information. All data is
+          aggregated and anonymized. We do not use any other analytics services,
+          tracking pixels, fingerprinting, or advertising networks. We do not track
+          your searches, card views, portfolio contents, or any interaction within
+          the app beyond page-level view counts.
         </p>
       </section>
 
