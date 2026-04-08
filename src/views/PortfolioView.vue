@@ -565,18 +565,13 @@ async function refreshPrices() {
   }
 
   await Promise.all([
-    // Raw cards — pokemontcg.io / tcgdex (batched)
+    // Raw cards — pokemontcg.io (batched, EN only — JP cards use stored prices)
     batchMap(cardItems, async item => {
-      let price
-      if (item.cardData?._lang === 'ja' || item._lang === 'ja') {
-        const card = await getJapaneseCardDetail(item.cardId)
-        const vals = card?.tcgplayer?.prices ? Object.values(card.tcgplayer.prices)[0] : null
-        price = vals?.market || vals?.mid || null
-      } else {
-        const card = await getCard(item.cardId)
-        const priceResult = getMarketPrice(card, item.priceVariant)
-        price = priceResult?.price || priceResult
-      }
+      // Skip JP cards — they need individual tcgdex calls, don't auto-refresh
+      if (item.cardData?._lang === 'ja' || item._lang === 'ja') return
+      const card = await getCard(item.cardId)
+      const priceResult = getMarketPrice(card, item.priceVariant)
+      const price = priceResult?.price || priceResult
       if (price) {
         store.updateItem(portfolio.value.id, item.id, { currentMarketPrice: price })
         updated++

@@ -382,16 +382,11 @@ onMounted(async () => {
   for (let i = 0; i < allCardItems.length; i += 3) {
     const batch = allCardItems.slice(i, i + 3)
     await Promise.allSettled(batch.map(async item => {
-      let card, price
-      if (item.cardData?._lang === 'ja' || item._lang === 'ja') {
-        card = await getJapaneseCardDetail(item.cardId)
-        const vals = card?.tcgplayer?.prices ? Object.values(card.tcgplayer.prices)[0] : null
-        price = vals?.market || vals?.mid || null
-      } else {
-        card = await getCard(item.cardId)
-        const result = getMarketPrice(card, item.priceVariant)
-        price = result?.price || result
-      }
+      // Skip JP cards — they need individual tcgdex calls, don't auto-refresh
+      if (item.cardData?._lang === 'ja' || item._lang === 'ja') return
+      const card = await getCard(item.cardId)
+      const result = getMarketPrice(card, item.priceVariant)
+      const price = result?.price || result
       if (price) store.updateItem(item.portfolioId, item.id, { currentMarketPrice: price })
     }))
   }
