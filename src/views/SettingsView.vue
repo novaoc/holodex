@@ -128,6 +128,31 @@
       </div>
     </div>
 
+    <!-- Price Alerts -->
+    <div class="settings-section card mb-4">
+      <h3 class="settings-section-title">Price Alerts</h3>
+      <p class="settings-desc">Get notified when a card's price crosses your threshold. Alerts are checked when prices refresh.</p>
+
+      <div v-if="allAlerts.length === 0" class="settings-item" style="border-bottom:none">
+        <div class="text-muted" style="font-size:13px">No alerts set. View a card and click "Set Price Alert" to create one.</div>
+      </div>
+
+      <div v-for="alert in allAlerts" :key="alert.id" class="settings-item">
+        <div>
+          <div class="settings-item-label">{{ alert.cardName }}</div>
+          <div class="settings-item-sub">
+            {{ alert.condition === 'above' ? '↑ Above' : '↓ Below' }} ${{ alert.threshold.toFixed(2) }}
+            <span v-if="alert.triggered" style="color:#3fb950"> · Triggered</span>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-icon btn-sm" @click="removeAlertById(alert.id)" style="color:var(--danger)">✕</button>
+      </div>
+
+      <div v-if="triggeredCount > 0" class="settings-item" style="border-bottom:none">
+        <button class="btn btn-secondary btn-sm" @click="doClearTriggered">Clear {{ triggeredCount }} triggered</button>
+      </div>
+    </div>
+
     <!-- About -->
     <div class="settings-section card">
       <h3 class="settings-section-title">About</h3>
@@ -201,6 +226,7 @@ import { useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel, exportAllPortfolios } from '../utils/excel'
 import { exportBackup, validateBackup, importBackup } from '../utils/backup'
+import { getActiveAlerts, getTriggeredAlerts, removeAlert, clearTriggeredAlerts, clearAllAlerts } from '../utils/alerts'
 import LocalSyncModal from '../components/LocalSyncModal.vue'
 const store = usePortfolioStore()
 const router = useRouter()
@@ -208,6 +234,17 @@ const router = useRouter()
 const confirmReset = ref(false)
 const resetConfirmText = ref('')
 const showLocalSync = ref(false)
+
+// Alert state
+const allAlerts = computed(() => {
+  const active = getActiveAlerts()
+  const triggered = getTriggeredAlerts()
+  return [...triggered, ...active]
+})
+const triggeredCount = computed(() => getTriggeredAlerts().length)
+
+function removeAlertById(id) { removeAlert(id) }
+function doClearTriggered() { clearTriggeredAlerts() }
 
 const totalItems = computed(() => store.portfolios.reduce((s, p) => s + p.items.length, 0))
 

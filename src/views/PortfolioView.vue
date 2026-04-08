@@ -318,6 +318,7 @@ import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel } from '../utils/excel'
 import { getCard, getMarketPrice } from '../services/pokemonApi'
 import { fetchPrice } from '../services/priceServer'
+import { checkAlerts, notifyTriggered } from '../utils/alerts'
 import PriceChart from '../components/PriceChart.vue'
 import PortfolioChart from '../components/PortfolioChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
@@ -572,6 +573,17 @@ async function refreshPrices() {
   ])
 
   if (updated > 0) store.recordSnapshot(portfolio.value.id)
+
+  // Check price alerts
+  const priceMap = new Map()
+  for (const item of portfolio.value.items) {
+    if (item.type === 'card' && item.cardId) {
+      priceMap.set(item.cardId, item.currentMarketPrice || item.purchasePrice || 0)
+    }
+  }
+  const triggered = checkAlerts(priceMap)
+  if (triggered.length > 0) notifyTriggered(triggered)
+
   refreshStatus.value = updated > 0 ? `Updated ${updated} item${updated > 1 ? 's' : ''}` : 'No updates'
   setTimeout(() => { refreshStatus.value = '' }, 3000)
   refreshing.value = false

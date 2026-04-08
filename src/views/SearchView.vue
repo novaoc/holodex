@@ -113,6 +113,36 @@
                   + Add to Portfolio
                 </button>
               </div>
+
+              <!-- Price alert -->
+              <div class="alert-section mt-3">
+                <div v-if="!showAlertForm && !activeAlert.length">
+                  <button class="btn btn-secondary btn-sm w-full" @click="showAlertForm = true">
+                    🔔 Set Price Alert
+                  </button>
+                </div>
+                <div v-if="activeAlert.length" class="active-alerts">
+                  <div v-for="a in activeAlert" :key="a.id" class="active-alert-row">
+                    <span class="alert-badge">
+                      🔔 {{ a.condition === 'above' ? '↑' : '↓' }} ${{ a.threshold.toFixed(2) }}
+                    </span>
+                    <button class="btn btn-ghost btn-icon btn-sm" @click="removeAlertById(a.id)" title="Remove">✕</button>
+                  </div>
+                  <button class="btn btn-ghost btn-sm" style="font-size:11px" @click="showAlertForm = true">+ Add another</button>
+                </div>
+                <div v-if="showAlertForm" class="alert-form">
+                  <div class="alert-form-row">
+                    <select v-model="alertCondition" class="input" style="width:auto;font-size:13px;padding:4px 8px">
+                      <option value="above">Above</option>
+                      <option value="below">Below</option>
+                    </select>
+                    <span style="color:var(--text-muted);font-size:13px">$</span>
+                    <input v-model.number="alertThreshold" type="number" step="0.01" min="0" class="input" style="width:100px;font-size:13px;padding:4px 8px" placeholder="0.00" />
+                    <button class="btn btn-primary btn-sm" :disabled="!alertThreshold" @click="saveAlert">Set</button>
+                    <button class="btn btn-ghost btn-sm" @click="showAlertForm = false">Cancel</button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -144,6 +174,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { searchCards, getMarketPrice, formatVariantLabel } from '../services/pokemonApi'
+import { getAlertsForCard, addAlert, removeAlert, requestNotificationPermission } from '../utils/alerts'
 import PriceChart from '../components/PriceChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
 
@@ -159,6 +190,34 @@ const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
 const selectedCard = ref(null)
 const showAddModal = ref(false)
 const modalCard = ref(null)
+
+// Alert state
+const showAlertForm = ref(false)
+const alertCondition = ref('below')
+const alertThreshold = ref(null)
+
+const activeAlert = computed(() => {
+  if (!selectedCard.value) return []
+  return getAlertsForCard(selectedCard.value.id)
+})
+
+async function saveAlert() {
+  if (!selectedCard.value || !alertThreshold.value) return
+  await requestNotificationPermission()
+  addAlert(
+    selectedCard.value.id,
+    selectedCard.value.name,
+    alertCondition.value,
+    alertThreshold.value,
+    getPrice(selectedCard.value)
+  )
+  showAlertForm.value = false
+  alertThreshold.value = null
+}
+
+function removeAlertById(id) {
+  removeAlert(id)
+}
 
 let debounceTimer = null
 
@@ -362,6 +421,24 @@ function onAdded() {
 .price-val { font-weight: 600; font-variant-numeric: tabular-nums; }
 
 .panel-chart { border-top: 1px solid var(--border); padding-top: 20px; }
+
+/* Alert styles */
+.active-alerts { display: flex; flex-direction: column; gap: 4px; }
+.active-alert-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: rgba(245, 166, 35, 0.1);
+  border-radius: var(--radius);
+}
+.alert-badge { font-size: 13px; font-weight: 600; color: var(--accent); }
+.alert-form-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 
 @media (max-width: 768px) {
   .card-detail-panel {
