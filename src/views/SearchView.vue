@@ -364,8 +364,31 @@ function onAdded() {
 .panel-chart { border-top: 1px solid var(--border); padding-top: 20px; }
 
 @media (max-width: 768px) {
-  .card-detail-panel { left: 0; }
-  .panel-top { flex-direction: column; }
-  .panel-card-img { width: 100px; min-width: 100px; }
+  .card-detail-panel {
+    left: 0;
+    max-height: 85vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  /* Drag handle */
+  .card-detail-panel::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    margin: 8px auto 4px;
+  }
+  .panel-top { flex-direction: column; align-items: center; }
+  .panel-card-img { width: 160px; min-width: 160px; }
+  .panel-body { padding: 12px 16px; }
+  .panel-header { padding: 12px 16px; }
+}
+
+@media (max-width: 480px) {
+  .card-detail-panel { max-height: 90vh; }
+  .cards-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .card-meta { padding: 8px; }
+  .card-name { font-size: 11px; }
 }
 </style>

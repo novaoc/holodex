@@ -695,6 +695,10 @@ function deletePortfolio() {
   .search-mini-wrap { width: 100%; }
   .portfolio-header-actions { gap: 6px; }
   .portfolio-header-actions .btn { font-size: 11px; padding: 4px 8px; }
+  /* Hide less critical columns */
+  .table th:nth-child(2), .table td:nth-child(2) { display: none; } /* Type */
+  .table th:last-child, .table td:last-child { display: none; } /* Actions */
+  .table { min-width: 400px; }
 }
 
 @media (max-width: 640px) {
@@ -708,5 +712,7 @@ function deletePortfolio() {
   .filter-tab { flex: 1; justify-content: center; }
   /* Stats */
   .stats-row { grid-template-columns: 1fr 1fr; }
+  /* Compact gain/loss on small screens */
+  .gain-pct { display: none; }
 }
 </style>
