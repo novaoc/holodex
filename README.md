@@ -41,6 +41,7 @@ Built by [Nova](https://github.com/novaoc).
 - All data stored locally in your browser (localStorage)
 - No accounts, no tracking, no server — everything runs client-side
 - Price data fetched directly from public APIs in the browser
+- Responsive design — works on desktop and mobile
 
 ## Stack
 
