@@ -45,7 +45,7 @@
             <div class="settings-item-label">PriceCharting API Key</div>
             <div class="settings-item-sub">
               Free key at
-              <a href="https://www.pricecharting.com/api" target="_blank" rel="noopener">pricecharting.com/api</a>
+              <a href="https://www.pricecharting.com/api-documentation" target="_blank" rel="noopener">pricecharting.com/api-documentation</a>
               — enables live price lookup for sealed products and graded slabs
             </div>
           </div>
