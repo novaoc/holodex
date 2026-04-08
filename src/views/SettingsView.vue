@@ -96,6 +96,14 @@
 
       <div class="settings-item">
         <div>
+          <div class="settings-item-label">Transfer to Device</div>
+          <div class="settings-item-sub">Copy your collection to another device via QR code or clipboard</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" @click="showLocalSync = true">↑↓ Transfer</button>
+      </div>
+
+      <div class="settings-item">
+        <div>
           <div class="settings-item-label">Export Backup</div>
           <div class="settings-item-sub">Download all portfolios, settings, and price snapshots</div>
         </div>
@@ -183,6 +191,8 @@
       </div>
     </transition>
   </div>
+
+  <LocalSyncModal v-if="showLocalSync" @close="showLocalSync = false" />
 </template>
 
 <script setup>
@@ -191,11 +201,13 @@ import { useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel, exportAllPortfolios } from '../utils/excel'
 import { exportBackup, validateBackup, importBackup } from '../utils/backup'
+import LocalSyncModal from '../components/LocalSyncModal.vue'
 const store = usePortfolioStore()
 const router = useRouter()
 
 const confirmReset = ref(false)
 const resetConfirmText = ref('')
+const showLocalSync = ref(false)
 
 const totalItems = computed(() => store.portfolios.reduce((s, p) => s + p.items.length, 0))
 
