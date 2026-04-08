@@ -4,6 +4,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import httpx
 from bs4 import BeautifulSoup
@@ -27,15 +28,22 @@ HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
+# Shared HTTP client for connection pooling
+_client = None
+
+def get_client():
+    global _client
+    if _client is None or _client.is_closed:
+        _client = httpx.Client(timeout=10, follow_redirects=True, headers=HEADERS)
+    return _client
+
 def fetch(url: str) -> str:
-    with httpx.Client(timeout=15, follow_redirects=True, headers=HEADERS) as client:
-        resp = client.get(url)
+    resp = get_client().get(url)
     resp.raise_for_status()
     return resp.text
 
 def fetch_json(url: str) -> dict:
-    with httpx.Client(timeout=15, follow_redirects=True, headers=HEADERS) as client:
-        resp = client.get(url)
+    resp = get_client().get(url)
     resp.raise_for_status()
     return resp.json()
 
@@ -55,8 +63,9 @@ PRIORITY_ORDER = {
     "Special Illustration Rare": 7, "Hyper Rare": 8, "Secret Rare": 9,
 }
 
-def resolve_card(set_code: str, number: str, quantity: int) -> dict | None:
-    """Look up a card on pokemontcg.io by set code + number and return full data."""
+def resolve_card(args):
+    """Look up a card on pokemontcg.io by set code + number."""
+    set_code, number, quantity = args
     api_set = SET_CODE_MAP.get(set_code, set_code.lower())
     url = f"https://api.pokemontcg.io/v2/cards?q=set.id:{api_set}+number:{number}&pageSize=5"
     try:
@@ -65,11 +74,9 @@ def resolve_card(set_code: str, number: str, quantity: int) -> dict | None:
         if not cards:
             return None
 
-        # Prefer regular print (lowest rarity priority)
         cards.sort(key=lambda c: PRIORITY_ORDER.get(c.get("rarity", ""), 5))
         card = cards[0]
 
-        # Extract market price
         price = None
         prices = card.get("tcgplayer", {}).get("prices", {})
         for key in ["holofoil", "normal", "reverseHolofoil"]:
@@ -94,6 +101,25 @@ def resolve_card(set_code: str, number: str, quantity: int) -> dict | None:
         }
     except Exception:
         return None
+
+
+def resolve_cards_parallel(card_list):
+    """Resolve multiple cards in parallel using threads."""
+    tasks = [(c["setCode"], c["number"], c["quantity"]) for c in card_list]
+    results = []
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(resolve_card, t): i for i, t in enumerate(tasks)}
+        ordered = [None] * len(tasks)
+        for future in as_completed(futures):
+            idx = futures[future]
+            try:
+                result = future.result()
+                if result:
+                    ordered[idx] = result
+            except Exception:
+                pass
+        results = [r for r in ordered if r]
+    return results
 
 
 def parse_meta_table(html: str) -> list[dict]:
@@ -194,16 +220,25 @@ class handler(BaseHTTPRequestHandler):
                 except Exception:
                     continue
 
-            # 3. Resolve all cards server-side via TCG API
-            resolved_decks = []
-            for deck in raw_decks:
-                resolved_cards = []
+            # 3. Resolve ALL cards in parallel across all decks
+            all_cards = []
+            card_deck_map = []  # track which card belongs to which deck
+            for di, deck in enumerate(raw_decks):
                 for card in deck["cards"]:
-                    resolved = resolve_card(card["setCode"], card["number"], card["quantity"])
-                    if resolved:
-                        resolved_cards.append(resolved)
+                    all_cards.append(card)
+                    card_deck_map.append(di)
 
-                if resolved_cards:
+            resolved_all = resolve_cards_parallel(all_cards)
+
+            # 4. Group resolved cards back into decks
+            deck_cards = [[] for _ in raw_decks]
+            for ci, resolved in enumerate(resolved_all):
+                deck_idx = card_deck_map[ci]
+                deck_cards[deck_idx].append(resolved)
+
+            resolved_decks = []
+            for di, deck in enumerate(raw_decks):
+                if deck_cards[di]:
                     resolved_decks.append({
                         "name": deck["name"],
                         "archetype": deck["archetype"],
@@ -213,7 +248,7 @@ class handler(BaseHTTPRequestHandler):
                             "share": deck["share"],
                             "points": deck["points"],
                         },
-                        "cards": resolved_cards,
+                        "cards": deck_cards[di],
                     })
 
             if resolved_decks:
