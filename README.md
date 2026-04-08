@@ -42,6 +42,7 @@ Built by [Nova](https://github.com/novaoc).
 - No accounts, no tracking, no server — everything runs client-side
 - Price data fetched directly from public APIs in the browser
 - Responsive design — works on desktop and mobile
+- Price alerts — set thresholds on cards, get browser notifications when prices cross them
 
 ## Stack
 
