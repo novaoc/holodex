@@ -98,7 +98,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import QRCode from 'qrcode'
-import { exportBackup, importBackup, validateBackup } from '../utils/backup'
+import { importBackup, validateBackup } from '../utils/backup'
 
 const emit = defineEmits(['close'])
 
@@ -111,7 +111,26 @@ const qrCanvas = ref(null)
 const sendTextarea = ref(null)
 const qrTooLarge = ref(false)
 
-const backupData = computed(() => exportBackup())
+// Build backup data WITHOUT triggering download (exportBackup downloads a file)
+function buildBackupData() {
+  const payload = { version: 1, exportedAt: new Date().toISOString(), app: 'holodex', data: {} }
+  const keys = { portfolios: 'holodex_portfolios', settings: 'holodex_settings', snapshots: 'holodex_snapshots' }
+  for (const [label, key] of Object.entries(keys)) {
+    const raw = localStorage.getItem(key)
+    if (raw) try { payload.data[label] = JSON.parse(raw) } catch { payload.data[label] = raw }
+  }
+  const cacheKeys = Object.keys(localStorage).filter(k => k.startsWith('ph_cache_'))
+  if (cacheKeys.length > 0) {
+    payload.data.priceCache = {}
+    for (const k of cacheKeys) {
+      const raw = localStorage.getItem(k)
+      if (raw) try { payload.data.priceCache[k] = JSON.parse(raw) } catch { payload.data.priceCache[k] = raw }
+    }
+  }
+  return payload
+}
+
+const backupData = computed(() => buildBackupData())
 const encodedData = computed(() => JSON.stringify(backupData.value))
 const itemCount = computed(() => {
   const portfolios = backupData.value.data?.portfolios?.portfolios || []
