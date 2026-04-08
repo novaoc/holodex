@@ -64,6 +64,10 @@
                   <span class="set-dot">·</span>
                 </template>
                 <span class="set-count">{{ set.total }} cards</span>
+                <template v-if="ownedCardsBySet[set.id]">
+                  <span class="set-dot">·</span>
+                  <span class="set-owned">{{ ownedCardsBySet[set.id] }}/{{ set.total }}</span>
+                </template>
                 <template v-if="set.releaseDate">
                   <span class="set-dot">·</span>
                   <span class="set-date">{{ formatDate(set.releaseDate) }}</span>
@@ -283,6 +287,22 @@ const cardPageSize = 36
 const totalCards = ref(0)
 const totalCardPages = computed(() => Math.ceil(totalCards.value / cardPageSize))
 
+// Count how many unique cards from each set are owned across all portfolios
+const ownedCardsBySet = computed(() => {
+  const map = {}
+  for (const p of store.portfolios) {
+    for (const item of p.items) {
+      if (item.type !== 'card' || !item.cardData?.set?.id) continue
+      const setId = item.cardData.set.id
+      if (!map[setId]) map[setId] = new Set()
+      map[setId].add(item.cardId)
+    }
+  }
+  const result = {}
+  for (const [setId, ids] of Object.entries(map)) result[setId] = ids.size
+  return result
+})
+
 // Card detail / add modal
 const selectedCard = ref(null)
 const showAddModal = ref(false)
@@ -463,6 +483,7 @@ async function addSetToPortfolio(portfolioId) {
         set: { id: card.set?.id, name: card.set?.name },
         rarity: card.rarity,
         supertype: card.supertype,
+        _lang: card._lang || 'en',
       },
       priceVariant: price?.variant || '',
       currentMarketPrice: priceVal,
@@ -531,6 +552,7 @@ onMounted(loadSets)
 .set-meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 3px; font-size: 11px; color: var(--text-muted); }
 .set-dot { color: var(--border); }
 .set-series { color: var(--text-secondary); }
+.set-owned { color: var(--green, #3fb950); font-weight: 600; }
 
 .set-symbol-wrap { flex-shrink: 0; }
 .set-symbol { width: 24px; height: 24px; object-fit: contain; opacity: 0.7; }

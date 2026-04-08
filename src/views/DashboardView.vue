@@ -332,7 +332,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { usePortfolioStore } from '../stores/portfolio'
-import { getCard, getMarketPrice } from '../services/pokemonApi'
+import { getCard, getJapaneseCardDetail, getMarketPrice } from '../services/pokemonApi'
 import PortfolioChart from '../components/PortfolioChart.vue'
 
 const store = usePortfolioStore()
@@ -382,9 +382,16 @@ onMounted(async () => {
   for (let i = 0; i < allCardItems.length; i += 3) {
     const batch = allCardItems.slice(i, i + 3)
     await Promise.allSettled(batch.map(async item => {
-      const card = await getCard(item.cardId)
-      const result = getMarketPrice(card, item.priceVariant)
-      const price = result?.price || result
+      let card, price
+      if (item.cardData?._lang === 'ja' || item._lang === 'ja') {
+        card = await getJapaneseCardDetail(item.cardId)
+        const vals = card?.tcgplayer?.prices ? Object.values(card.tcgplayer.prices)[0] : null
+        price = vals?.market || vals?.mid || null
+      } else {
+        card = await getCard(item.cardId)
+        const result = getMarketPrice(card, item.priceVariant)
+        price = result?.price || result
+      }
       if (price) store.updateItem(item.portfolioId, item.id, { currentMarketPrice: price })
     }))
   }

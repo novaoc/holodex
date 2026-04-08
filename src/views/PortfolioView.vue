@@ -322,7 +322,7 @@ import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel } from '../utils/excel'
-import { getCard, getMarketPrice } from '../services/pokemonApi'
+import { getCard, getJapaneseCardDetail, getMarketPrice } from '../services/pokemonApi'
 import { fetchPrice } from '../services/priceServer'
 import { checkAlerts, notifyTriggered } from '../utils/alerts'
 import PriceChart from '../components/PriceChart.vue'
@@ -565,11 +565,18 @@ async function refreshPrices() {
   }
 
   await Promise.all([
-    // Raw cards — pokemontcg.io (batched)
+    // Raw cards — pokemontcg.io / tcgdex (batched)
     batchMap(cardItems, async item => {
-      const card = await getCard(item.cardId)
-      const priceResult = getMarketPrice(card, item.priceVariant)
-      const price = priceResult?.price || priceResult
+      let price
+      if (item.cardData?._lang === 'ja' || item._lang === 'ja') {
+        const card = await getJapaneseCardDetail(item.cardId)
+        const vals = card?.tcgplayer?.prices ? Object.values(card.tcgplayer.prices)[0] : null
+        price = vals?.market || vals?.mid || null
+      } else {
+        const card = await getCard(item.cardId)
+        const priceResult = getMarketPrice(card, item.priceVariant)
+        price = priceResult?.price || priceResult
+      }
       if (price) {
         store.updateItem(portfolio.value.id, item.id, { currentMarketPrice: price })
         updated++
