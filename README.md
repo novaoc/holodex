@@ -30,6 +30,16 @@ Built by [Nova](https://github.com/novaoc).
 - Portfolio value-over-time chart using last-observation-carried-forward (LOCF) system
 - Daily price snapshots for sealed/graded items
 
+### Deck Builder
+- Create multiple named decks and track them alongside your collection
+- Search cards by name and add them with one click
+- Adjust quantities with +/− controls
+- Ownership tracking — see which cards you already own (cross-referenced against all portfolios, raw cards only)
+- Cost calculation — total cost to buy the cards you still need
+- Completion percentage — progress bar shows how close you are to having the full deck
+- Meta Decks — browse popular competitive decks (Charizard ex, Gardevoir, Lost Zone Box, Miraidon, Chien-Pao, Giratina) and import with one click
+- View full card list in meta decks before importing
+
 ### Export & Backup
 - Export individual portfolios to Excel (summary + items sheets)
 - Export all portfolios to a single Excel file
