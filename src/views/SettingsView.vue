@@ -131,14 +131,14 @@
         <div class="settings-item">
           <div>
             <div class="settings-item-label">Google Drive</div>
-            <div class="settings-item-sub">Stores a backup file in your Google Drive app folder</div>
+            <div class="settings-item-sub">Read/write access to a hidden app folder only — nothing visible in your Drive</div>
           </div>
           <button class="btn btn-secondary btn-sm" :disabled="syncLoading" @click="connectGoogle">Connect</button>
         </div>
         <div class="settings-item">
           <div>
             <div class="settings-item-label">Dropbox</div>
-            <div class="settings-item-sub">Stores a backup file in your Dropbox Apps folder</div>
+            <div class="settings-item-sub">Read/write access to an app folder only — nothing else in your Dropbox</div>
           </div>
           <button class="btn btn-secondary btn-sm" :disabled="syncLoading" @click="connectDropbox">Connect</button>
         </div>

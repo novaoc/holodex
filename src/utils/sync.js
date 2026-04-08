@@ -266,7 +266,7 @@ const DROPBOX_API = 'https://api.dropboxapi.com/2'
 const DROPBOX_CONTENT = 'https://content.dropboxapi.com/2'
 
 export function createDropboxSync(appKey) {
-  const filePath = `/Apps/Holodex/${SYNC_FILE_NAME}`
+  const filePath = `/${SYNC_FILE_NAME}`
 
   function isConnected() {
     const state = loadSyncState()
