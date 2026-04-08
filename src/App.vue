@@ -1,0 +1,308 @@
+<template>
+  <div class="app-layout">
+    <aside class="sidebar" :class="{ open: sidebarOpen }">
+      <div class="sidebar-logo">
+        <span class="logo-icon">⬡</span>
+        <span class="logo-text">Collectr</span>
+        <button class="btn btn-ghost btn-icon sidebar-close" @click="sidebarOpen = false">✕</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <router-link to="/" class="nav-item" @click="sidebarOpen = false">
+          <span class="nav-icon">⊞</span> Dashboard
+        </router-link>
+        <router-link to="/search" class="nav-item" @click="sidebarOpen = false">
+          <span class="nav-icon">⌕</span> Search Cards
+        </router-link>
+      </nav>
+
+      <div class="sidebar-section-label">Portfolios</div>
+
+      <nav class="sidebar-nav portfolios-nav">
+        <router-link
+          v-for="p in store.portfolios"
+          :key="p.id"
+          :to="`/portfolio/${p.id}`"
+          class="nav-item portfolio-nav-item"
+          @click="sidebarOpen = false"
+        >
+          <span class="portfolio-dot" :style="{ background: p.color }"></span>
+          <span class="portfolio-nav-name">{{ p.name }}</span>
+          <span class="portfolio-nav-count">{{ p.items.length }}</span>
+        </router-link>
+
+        <button class="nav-item add-portfolio-btn" @click="showNewPortfolioModal = true">
+          <span class="nav-icon">＋</span> New Portfolio
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <router-link to="/settings" class="nav-item" @click="sidebarOpen = false">
+          <span class="nav-icon">⚙</span> Settings
+        </router-link>
+      </div>
+    </aside>
+
+    <div class="main-wrapper">
+      <header class="topbar">
+        <button class="btn btn-ghost btn-icon hamburger" @click="sidebarOpen = !sidebarOpen">
+          ☰
+        </button>
+        <div class="topbar-breadcrumb">{{ currentPageTitle }}</div>
+        <router-link to="/search" class="btn btn-primary btn-sm">
+          + Add Card
+        </router-link>
+      </header>
+
+      <main class="main-content">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
+    </div>
+
+    <!-- New Portfolio Modal -->
+    <transition name="fade">
+      <div v-if="showNewPortfolioModal" class="modal-overlay" @click.self="showNewPortfolioModal = false">
+        <div class="modal slide-up-enter-active">
+          <div class="modal-header">
+            <h3>New Portfolio</h3>
+            <button class="btn btn-ghost btn-icon" @click="showNewPortfolioModal = false">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input v-model="newPortfolioName" class="input" placeholder="e.g. Base Set Collection" @keyup.enter="createPortfolio" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Color</label>
+              <div class="color-picker-row">
+                <button
+                  v-for="c in portfolioColors"
+                  :key="c"
+                  class="color-swatch"
+                  :class="{ active: newPortfolioColor === c }"
+                  :style="{ background: c }"
+                  @click="newPortfolioColor = c"
+                ></button>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" @click="showNewPortfolioModal = false">Cancel</button>
+            <button class="btn btn-primary" :disabled="!newPortfolioName.trim()" @click="createPortfolio">Create</button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { usePortfolioStore } from './stores/portfolio'
+
+const store = usePortfolioStore()
+const route = useRoute()
+const router = useRouter()
+
+const sidebarOpen = ref(false)
+const showNewPortfolioModal = ref(false)
+const newPortfolioName = ref('')
+const newPortfolioColor = ref('#f5a623')
+
+const portfolioColors = [
+  '#f5a623', '#58a6ff', '#3fb950', '#f85149',
+  '#bc8cff', '#ff7b72', '#79c0ff', '#56d364'
+]
+
+const currentPageTitle = computed(() => {
+  if (route.name === 'Dashboard') return 'Dashboard'
+  if (route.name === 'Search') return 'Search Cards'
+  if (route.name === 'Settings') return 'Settings'
+  if (route.name === 'Portfolio') {
+    const p = store.portfolios.find(p => p.id === route.params.id)
+    return p?.name || 'Portfolio'
+  }
+  return 'Collectr'
+})
+
+function createPortfolio() {
+  if (!newPortfolioName.value.trim()) return
+  const p = store.createPortfolio(newPortfolioName.value.trim(), newPortfolioColor.value)
+  newPortfolioName.value = ''
+  showNewPortfolioModal.value = false
+  router.push(`/portfolio/${p.id}`)
+}
+
+onMounted(() => {
+  store.init()
+})
+</script>
+
+<style scoped>
+.app-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.logo-icon { font-size: 22px; color: var(--accent); }
+.logo-text { font-size: 18px; font-weight: 700; color: var(--text-primary); flex: 1; }
+.sidebar-close { display: none; }
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+  text-align: left;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text-primary); text-decoration: none; }
+.nav-item.router-link-active {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  padding: 12px 18px 4px;
+}
+
+.portfolios-nav { max-height: none; flex: 1; }
+
+.portfolio-nav-item { justify-content: flex-start; }
+.portfolio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.portfolio-nav-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.portfolio-nav-count {
+  font-size: 11px;
+  background: var(--bg-hover);
+  padding: 1px 6px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.add-portfolio-btn { color: var(--text-muted); font-size: 12px; }
+.add-portfolio-btn:hover { color: var(--accent); }
+
+.sidebar-bottom {
+  padding: 8px;
+  border-top: 1px solid var(--border);
+  margin-top: auto;
+}
+
+/* Main content */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.topbar {
+  height: var(--header-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.topbar-breadcrumb {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.hamburger { display: none; }
+
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+/* Color picker */
+.color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.active { border-color: white; transform: scale(1.1); }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 200;
+    transform: translateX(-100%);
+    width: 260px;
+    min-width: 260px;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-close { display: flex; }
+  .hamburger { display: flex; }
+  .main-content { padding: 16px; }
+}
+</style>

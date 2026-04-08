@@ -1,0 +1,258 @@
+<template>
+  <div class="price-chart-wrapper">
+    <div v-if="loading" class="chart-loading flex-center">
+      <div class="spinner"></div>
+    </div>
+    <div v-else-if="noData" class="chart-nodata flex-center flex-col">
+      <span style="font-size:32px;opacity:0.2">📊</span>
+      <span class="text-muted mt-2" style="font-size:12px">No price history available</span>
+      <span v-if="currentPrice" class="text-secondary mt-1" style="font-size:12px">
+        Current: <span class="text-accent font-bold">${{ currentPrice?.toFixed(2) }}</span>
+      </span>
+    </div>
+    <div v-else>
+      <div class="chart-header">
+        <div class="chart-controls">
+          <button
+            v-for="r in ranges"
+            :key="r.value"
+            class="range-btn"
+            :class="{ active: activeRange === r.value }"
+            @click="setRange(r.value)"
+          >{{ r.label }}</button>
+        </div>
+        <div v-if="availableVariants.length > 1" class="variant-select-wrapper">
+          <select v-model="selectedVariant" class="select select-sm" @change="buildSeries">
+            <option v-for="v in availableVariants" :key="v" :value="v">
+              {{ getVariantLabel(v) }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <apexchart
+        type="area"
+        :height="height"
+        :options="chartOptions"
+        :series="chartSeries"
+      />
+
+      <div class="price-stats" v-if="priceStats">
+        <div class="price-stat">
+          <span class="stat-label">Current</span>
+          <span class="stat-val">${{ priceStats.current?.toFixed(2) ?? '—' }}</span>
+        </div>
+        <div class="price-stat">
+          <span class="stat-label">High</span>
+          <span class="stat-val text-success">${{ priceStats.high?.toFixed(2) ?? '—' }}</span>
+        </div>
+        <div class="price-stat">
+          <span class="stat-label">Low</span>
+          <span class="stat-val text-danger">${{ priceStats.low?.toFixed(2) ?? '—' }}</span>
+        </div>
+        <div class="price-stat">
+          <span class="stat-label">{{ activeRange === '1m' ? '1M' : activeRange === '3m' ? '3M' : activeRange === '1y' ? '1Y' : 'All' }} Change</span>
+          <span class="stat-val" :class="priceStats.change >= 0 ? 'text-success' : 'text-danger'">
+            {{ priceStats.change >= 0 ? '+' : '' }}{{ priceStats.changePct?.toFixed(1) }}%
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, watch, computed, onMounted } from 'vue'
+import { fetchPriceHistory, buildChartSeries, filterByYears, getVariantLabel } from '../services/priceHistory'
+
+const props = defineProps({
+  cardId: { type: String, required: true },
+  currentPrice: { type: Number, default: null },
+  height: { type: Number, default: 280 },
+  compact: { type: Boolean, default: false }
+})
+
+const loading = ref(true)
+const noData = ref(false)
+const rawHistory = ref(null)
+const chartSeries = ref([])
+const availableVariants = ref([])
+const selectedVariant = ref(null)
+const activeRange = ref('3y')
+
+const ranges = [
+  { label: '1M', value: '1m' },
+  { label: '3M', value: '3m' },
+  { label: '6M', value: '6m' },
+  { label: '1Y', value: '1y' },
+  { label: '3Y', value: '3y' },
+]
+
+const chartOptions = ref({
+  chart: {
+    id: 'price-chart',
+    type: 'area',
+    background: 'transparent',
+    toolbar: { show: false },
+    zoom: { enabled: true },
+    animations: { enabled: true, speed: 400 }
+  },
+  theme: { mode: 'dark' },
+  dataLabels: { enabled: false },
+  stroke: { curve: 'smooth', width: 2 },
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.35,
+      opacityTo: 0.02,
+      stops: [0, 100]
+    }
+  },
+  colors: ['#f5a623'],
+  xaxis: {
+    type: 'datetime',
+    labels: { style: { colors: '#8b949e', fontSize: '11px' } },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
+  },
+  yaxis: {
+    labels: {
+      style: { colors: '#8b949e', fontSize: '11px' },
+      formatter: (v) => `$${v?.toFixed(0)}`
+    }
+  },
+  tooltip: {
+    theme: 'dark',
+    x: { format: 'MMM dd, yyyy' },
+    y: { formatter: (v) => `$${v?.toFixed(2)}` }
+  },
+  grid: {
+    borderColor: '#30363d',
+    strokeDashArray: 3,
+    xaxis: { lines: { show: false } },
+    yaxis: { lines: { show: true } },
+    padding: { left: 0, right: 0 }
+  },
+  markers: { size: 0, hover: { size: 4 } }
+})
+
+const priceStats = computed(() => {
+  const data = chartSeries.value?.[0]?.data
+  if (!data || data.length === 0) return null
+
+  const prices = data.map(p => p.y).filter(Boolean)
+  const current = prices[prices.length - 1]
+  const first = prices[0]
+  const high = Math.max(...prices)
+  const low = Math.min(...prices)
+  const change = current - first
+  const changePct = first > 0 ? (change / first) * 100 : 0
+
+  return { current, high, low, change, changePct }
+})
+
+async function load() {
+  loading.value = true
+  noData.value = false
+  try {
+    rawHistory.value = await fetchPriceHistory(props.cardId)
+    if (rawHistory.value) {
+      availableVariants.value = Object.keys(rawHistory.value.variants)
+      selectedVariant.value = selectedVariant.value || availableVariants.value[0]
+    }
+    buildSeries()
+  } catch (e) {
+    noData.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
+function buildSeries() {
+  const result = buildChartSeries(rawHistory.value, props.currentPrice, selectedVariant.value)
+  if (!result || (Array.isArray(result) && result.length === 0)) {
+    noData.value = true
+    return
+  }
+  const allSeries = Array.isArray(result) ? result : result.series
+  selectedVariant.value = result.key || selectedVariant.value
+  applyRange(allSeries)
+}
+
+function setRange(range) {
+  activeRange.value = range
+  const result = buildChartSeries(rawHistory.value, props.currentPrice, selectedVariant.value)
+  if (!result) return
+  const allSeries = Array.isArray(result) ? result : result.series
+  applyRange(allSeries)
+}
+
+function applyRange(allSeries) {
+  const rangeMap = { '1m': 1/12, '3m': 3/12, '6m': 0.5, '1y': 1, '3y': 3 }
+  const years = rangeMap[activeRange.value] || 3
+  const filtered = filterByYears(allSeries, years)
+  chartSeries.value = [{ name: 'Price', data: filtered }]
+
+  const color = filtered.length >= 2
+    ? (filtered[filtered.length - 1].y >= filtered[0].y ? '#3fb950' : '#f85149')
+    : '#f5a623'
+  chartOptions.value = { ...chartOptions.value, colors: [color] }
+}
+
+watch(() => props.cardId, load, { immediate: false })
+onMounted(load)
+</script>
+
+<style scoped>
+.price-chart-wrapper { position: relative; }
+.chart-loading, .chart-nodata {
+  height: 200px;
+  flex-direction: column;
+  gap: 8px;
+}
+.chart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chart-controls { display: flex; gap: 4px; }
+.range-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.range-btn:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.range-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+.select-sm { width: auto; padding: 4px 8px; font-size: 11px; }
+
+.price-stats {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 8px;
+}
+.price-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border-right: 1px solid var(--border);
+}
+.price-stat:last-child { border-right: none; }
+.stat-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 3px; }
+.stat-val { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+</style>
