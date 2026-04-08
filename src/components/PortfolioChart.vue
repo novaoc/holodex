@@ -245,10 +245,20 @@ function setRange(range) {
 function applyRange(points) {
   const rangeMap = { '1m': 1/12, '3m': 3/12, '6m': 0.5, '1y': 1, '3y': 3 }
   const years = rangeMap[activeRange.value] || 1
-  const cutoff = Date.now() - years * 365 * 24 * 60 * 60 * 1000
-  const filtered = points.filter(p => p.x >= cutoff)
+  const cutoff = Date.now() - years * 365.25 * 24 * 60 * 60 * 1000
 
-  const display = filtered.length > 0 ? filtered : points.slice(-1)
+  let filtered = points.filter(p => p.x >= cutoff)
+
+  // Anchor from last known point before cutoff so short ranges always draw a line
+  if (filtered.length < 2) {
+    const before = points.filter(p => p.x < cutoff)
+    if (before.length > 0) {
+      const anchor = before[before.length - 1]
+      filtered = [{ x: cutoff, y: anchor.y }, ...filtered]
+    }
+  }
+
+  const display = filtered.length >= 2 ? filtered : points
 
   const color = display.length >= 2
     ? (display[display.length - 1].y >= display[0].y ? '#3fb950' : '#f85149')

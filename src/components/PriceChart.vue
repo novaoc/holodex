@@ -5,10 +5,11 @@
     </div>
     <div v-else-if="noData" class="chart-nodata flex-center flex-col">
       <span style="font-size:32px;opacity:0.2">📊</span>
-      <span class="text-muted mt-2" style="font-size:12px">No price history available</span>
-      <span v-if="currentPrice" class="text-secondary mt-1" style="font-size:12px">
-        Current: <span class="text-accent font-bold">${{ currentPrice?.toFixed(2) }}</span>
+      <span class="text-muted mt-2" style="font-size:12px">No price history available for this card</span>
+      <span v-if="currentPrice" class="mt-2" style="font-size:14px;font-weight:700">
+        Current price: <span class="text-accent">${{ currentPrice?.toFixed(2) }}</span>
       </span>
+      <span v-if="!currentPrice" class="text-muted mt-1" style="font-size:11px">Card may not be in the tcgdex price history dataset</span>
     </div>
     <div v-else>
       <div class="chart-header">
@@ -191,11 +192,27 @@ function setRange(range) {
 function applyRange(allSeries) {
   const rangeMap = { '1m': 1/12, '3m': 3/12, '6m': 0.5, '1y': 1, '3y': 3 }
   const years = rangeMap[activeRange.value] || 3
-  const filtered = filterByYears(allSeries, years)
-  chartSeries.value = [{ name: 'Price', data: filtered }]
+  const cutoff = Date.now() - years * 365.25 * 24 * 60 * 60 * 1000
 
-  const color = filtered.length >= 2
-    ? (filtered[filtered.length - 1].y >= filtered[0].y ? '#3fb950' : '#f85149')
+  let filtered = allSeries.filter(p => p.x >= cutoff)
+
+  // If fewer than 2 points in range, anchor from the last known price before cutoff
+  // so the chart always draws a line instead of going blank
+  if (filtered.length < 2) {
+    const before = allSeries.filter(p => p.x < cutoff)
+    if (before.length > 0) {
+      const anchor = before[before.length - 1]
+      filtered = [{ x: cutoff, y: anchor.y }, ...filtered]
+    }
+  }
+
+  // Still nothing — fall back to all available data
+  const display = filtered.length >= 2 ? filtered : allSeries
+
+  chartSeries.value = [{ name: 'Price', data: display }]
+
+  const color = display.length >= 2
+    ? (display[display.length - 1].y >= display[0].y ? '#3fb950' : '#f85149')
     : '#f5a623'
   chartOptions.value = { ...chartOptions.value, colors: [color] }
 }
