@@ -32,6 +32,9 @@ Built by [Nova](https://github.com/novaoc).
 
 ### Browse & Search
 - Browse all TCG sets — logos, series, release dates, card counts
+- English and Japanese sets — toggle between languages with instant switching
+- Japanese sets sourced from tcgdex API with English name mapping and Pokellector set logos
+- Japanese cards show card images from tcgdex CDN with CardMarket EUR→USD converted prices
 - Click into any set to see the full card list (paginated grid)
 - Filter cards within sets by name
 - Search cards by name across all sets with live results
@@ -99,9 +102,20 @@ Built by [Nova](https://github.com/novaoc).
 
 ### Data & Privacy
 - All data stored locally in your browser (localStorage)
-- No accounts, no tracking, no server — everything runs client-side
+- No accounts, no server — everything runs client-side
 - Price data fetched directly from public APIs in the browser
 - Price alerts — set thresholds on cards, get browser notifications when prices cross them
+- Terms & Conditions page with full Privacy Policy at [/terms](https://holode.xyz/terms)
+- Vercel Analytics and Speed Insights for anonymized usage metrics (page views, Core Web Vitals — no cookies, no cross-site tracking)
+
+## Performance
+
+- Set data cached in localStorage for 24h — instant load on return visits
+- pokemontcg.io responses trimmed with `select=` — 50-60% smaller payloads
+- DNS prefetch for all external domains (APIs and CDNs)
+- In-memory API cache with 1h TTL for card/detail fetches
+- Chart rebuilds debounced (300ms), 404s cached as misses
+- Daily price snapshots use cached prices only — zero API calls
 
 ## Stack
 
@@ -111,8 +125,10 @@ Built by [Nova](https://github.com/novaoc).
 - Vue Router (navigation)
 - XLSX (Excel export)
 - pokemontcg.io API (card data + live prices)
-- TCGDex price history (Nov 2022+)
+- tcgdex API (Japanese sets/cards, price history Nov 2022+)
 - PriceCharting JSON API (sealed + graded prices)
+- Pokellector CDN (Japanese set logos)
+- Vercel (hosting + analytics)
 
 ## Getting Started
 
