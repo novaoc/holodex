@@ -69,7 +69,7 @@ async function importDeck(metaDeck) {
   importing.value = metaDeck.archetype
   // Small delay for visual feedback
   await new Promise(r => setTimeout(r, 300))
-  const deck = deckStore.importMetaDeck(metaDeck)
+  const deck = await deckStore.importMetaDeck(metaDeck)
   importing.value = null
   router.push(`/decks/${deck.id}`)
 }

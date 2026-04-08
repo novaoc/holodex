@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { usePortfolioStore } from './portfolio'
-import { getMarketPrice } from '../services/pokemonApi'
+import { getMarketPrice, getCard } from '../services/pokemonApi'
 
 const STORAGE_KEY = 'holodex_decks'
 
@@ -164,12 +164,35 @@ export const useDeckStore = defineStore('decks', () => {
 
   // ── Import from meta deck data ────────────────────────────────────────
 
-  function importMetaDeck(metaDeck) {
+  async function importMetaDeck(metaDeck) {
     const deck = createDeck(metaDeck.name)
-    for (const card of metaDeck.cards) {
-      addCardRaw(deck.id, card)
-    }
+    // Fetch prices from API for each card
+    const pricePromises = metaDeck.cards.map(async (card) => {
+      let price = null
+      try {
+        const fullCard = await getCard(card.cardId)
+        const result = getMarketPrice(fullCard)
+        price = result?.price || result || null
+      } catch {}
+      addCardRaw(deck.id, { ...card, price })
+    })
+    await Promise.allSettled(pricePromises)
     return deck
+  }
+
+  async function refreshDeckPrices(deckId) {
+    const deck = decks.value.find(d => d.id === deckId)
+    if (!deck) return
+    const promises = deck.cards.map(async (card) => {
+      if (card.price) return // skip cards that already have prices
+      try {
+        const fullCard = await getCard(card.cardId)
+        const result = getMarketPrice(fullCard)
+        card.price = result?.price || result || null
+      } catch {}
+    })
+    await Promise.allSettled(promises)
+    persist()
   }
 
   return {
@@ -183,6 +206,7 @@ export const useDeckStore = defineStore('decks', () => {
     removeCardFromDeck,
     getDeckStats,
     importMetaDeck,
+    refreshDeckPrices,
     persist,
   }
 })

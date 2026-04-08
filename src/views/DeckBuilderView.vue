@@ -14,6 +14,16 @@
         <div class="deck-meta text-muted">{{ deck.cards.length }} unique cards · {{ stats?.totalCards || 0 }} total</div>
       </div>
       <div class="deck-builder-actions">
+        <button
+          class="btn btn-ghost btn-sm"
+          @click="refreshPrices"
+          :disabled="refreshing"
+          v-if="deck.cards.some(c => !c.price)"
+          title="Fetch missing card prices"
+        >
+          <span v-if="refreshing" class="spinner spinner-sm"></span>
+          <span v-else>↻ Refresh Prices</span>
+        </button>
         <button class="btn btn-danger btn-sm" @click="confirmDelete = true">Delete</button>
       </div>
     </div>
@@ -163,6 +173,13 @@ const editingName = ref(false)
 const editName = ref('')
 const nameInputRef = ref(null)
 const confirmDelete = ref(false)
+const refreshing = ref(false)
+
+async function refreshPrices() {
+  refreshing.value = true
+  await deckStore.refreshDeckPrices(deck.value.id)
+  refreshing.value = false
+}
 
 function startEditName() {
   editName.value = deck.value.name
