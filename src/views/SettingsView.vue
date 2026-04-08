@@ -89,6 +89,38 @@
       </div>
     </div>
 
+    <!-- Backup & Restore -->
+    <div class="settings-section card mb-4">
+      <h3 class="settings-section-title">Backup & Restore</h3>
+      <p class="settings-desc">Download your entire collection as a JSON file. Restore it anytime on any device.</p>
+
+      <div class="settings-item">
+        <div>
+          <div class="settings-item-label">Export Backup</div>
+          <div class="settings-item-sub">Download all portfolios, settings, and price snapshots</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" @click="doExportBackup">↓ Download</button>
+      </div>
+
+      <div class="settings-item">
+        <div>
+          <div class="settings-item-label">Import Backup</div>
+          <div class="settings-item-sub">Restore from a previously exported backup file</div>
+        </div>
+        <label class="btn btn-secondary btn-sm backup-import-btn">
+          ↑ Import
+          <input type="file" accept=".json" @change="handleImport" hidden />
+        </label>
+      </div>
+
+      <div v-if="importResult" class="settings-item" style="border-bottom:none">
+        <div class="import-result" :class="importResult.error ? 'error' : 'success'">
+          {{ importResult.error || `Restored ${importResult.portfolios} portfolio(s), ${importResult.snapshots} snapshot(s)` }}
+          <span v-if="!importResult.error" class="import-reload" @click="location.reload()">Reload to apply</span>
+        </div>
+      </div>
+    </div>
+
     <!-- About -->
     <div class="settings-section card">
       <h3 class="settings-section-title">About</h3>
@@ -159,6 +191,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel, exportAllPortfolios } from '../utils/excel'
+import { exportBackup, validateBackup, importBackup } from '../utils/backup'
 const store = usePortfolioStore()
 const router = useRouter()
 
@@ -199,6 +232,33 @@ function exportOne(portfolio) {
 
 function exportAll() {
   exportAllPortfolios(store.portfolios)
+}
+
+const importResult = ref(null)
+
+function doExportBackup() {
+  exportBackup()
+}
+
+function handleImport(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result)
+      const error = validateBackup(data)
+      if (error) {
+        importResult.value = { error }
+        return
+      }
+      importResult.value = importBackup(data)
+    } catch {
+      importResult.value = { error: 'Invalid JSON file' }
+    }
+  }
+  reader.readAsText(file)
+  e.target.value = '' // reset so re-selecting same file works
 }
 </script>
 
@@ -268,6 +328,23 @@ function exportAll() {
 }
 
 .portfolio-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.import-result {
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  width: 100%;
+}
+.import-result.success { background: rgba(63, 185, 80, 0.1); color: #3fb950; }
+.import-result.error { background: rgba(248, 81, 73, 0.1); color: #f85149; }
+.import-reload {
+  margin-left: 8px;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 600;
+}
+.import-reload:hover { opacity: 0.8; }
+.backup-import-btn { cursor: pointer; }
 
 @media (max-width: 640px) {
   .about-grid { grid-template-columns: 1fr; }
