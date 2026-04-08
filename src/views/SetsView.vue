@@ -167,14 +167,14 @@
               <div class="panel-card-type">{{ selectedCard.supertype }} · {{ selectedCard.subtypes?.join(', ') }}</div>
 
               <div class="price-list mt-3" v-if="selectedCard.tcgplayer?.prices">
-                <div class="price-list-title">{{ selectedCard._lang === 'ja' ? 'CardMarket (EUR)' : 'TCGPlayer Prices' }}</div>
+                <div class="price-list-title">{{ selectedCard._lang === 'ja' ? 'CardMarket (converted)' : 'TCGPlayer Prices' }}</div>
                 <div
                   v-for="(vals, key) in selectedCard.tcgplayer.prices"
                   :key="key"
                   class="price-row"
                 >
                   <span class="price-variant">{{ selectedCard._lang === 'ja' ? 'Market' : formatVariantLabel(key) }}</span>
-                  <span class="price-val">€{{ vals.market?.toFixed(2) || vals.mid?.toFixed(2) || '—' }}</span>
+                  <span class="price-val">${{ vals.market?.toFixed(2) || vals.mid?.toFixed(2) || '—' }}</span>
                 </div>
               </div>
 

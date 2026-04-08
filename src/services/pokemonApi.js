@@ -118,15 +118,16 @@ export async function getJapaneseCardDetail(cardId) {
   const url = `https://api.tcgdex.net/v2/ja/cards/${cardId}`
   const data = await fetchWithCache(url)
   
-  // Build prices from cardmarket if available
+  // Build prices from cardmarket (EUR) and convert to USD
+  const EUR_TO_USD = 1.08
   let tcgPrices = null
   const cm = data.pricing?.cardmarket
   if (cm && (cm.avg || cm.trend)) {
     tcgPrices = {
       normal: {
-        market: cm.trend || cm.avg || null,
-        low: cm.low || null,
-        mid: cm.avg || null
+        market: cm.trend ? +(cm.trend * EUR_TO_USD).toFixed(2) : null,
+        low: cm.low ? +(cm.low * EUR_TO_USD).toFixed(2) : null,
+        mid: cm.avg ? +(cm.avg * EUR_TO_USD).toFixed(2) : null
       }
     }
   }
