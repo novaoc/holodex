@@ -46,3 +46,29 @@ export async function fetchPrice(query, grade = 'ungraded') {
 
 // Backwards-compat alias
 export const fetchEbayPrice = fetchPrice
+
+/**
+ * Search for sealed Pokemon products by set name.
+ * @param {string} query - e.g. "Fusion Strike" or "Base Set"
+ * @returns {{ results: Array<{name, set, url, slug, price}>, cached }}
+ */
+export async function searchSealed(query) {
+  const q = query.trim()
+  if (!q) throw new Error('empty_query')
+
+  let res
+  try {
+    res = await fetch(
+      `${BASE_URL}/sealed?q=${encodeURIComponent(q)}`,
+      { signal: AbortSignal.timeout(30000) }
+    )
+  } catch (e) {
+    if (e.name === 'TimeoutError') throw new Error('timeout')
+    throw new Error('server_down')
+  }
+
+  if (res.status === 404) throw new Error('no_results')
+  if (!res.ok) throw new Error(`server_error_${res.status}`)
+
+  return res.json()
+}

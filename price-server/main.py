@@ -311,6 +311,69 @@ async def get_price(
     return result
 
 
+@app.get("/sealed")
+async def search_sealed(q: str = Query(...), limit: int = Query(12, ge=1, le=30)):
+    """
+    Search PriceCharting for sealed Pokemon products matching a query.
+    Appends 'sealed' to the query to filter results.
+    Returns list of {name, set, url, price, slug}.
+    """
+    q = q.strip()
+    if not q:
+        raise HTTPException(400, "Query cannot be empty")
+
+    cache_key = f"sealed:{q.lower()}"
+    cached = _get(cache_key)
+    if cached:
+        return {"results": cached[:limit], "cached": True}
+
+    search_q = f"{q} sealed"
+    url = f"https://www.pricecharting.com/search-products?q={quote_plus(search_q)}&type=prices"
+    html = await _fetch(url)
+
+    soup = BeautifulSoup(html, "html.parser")
+    rows = soup.select("table#games_table tbody tr")
+
+    results = []
+    for row in rows:
+        cells = row.select("td")
+        if len(cells) < 4:
+            continue
+        a = row.select_one("td a")
+        if not a:
+            continue
+        href = a.get("href", "")
+        slug = href.split("/")[-1]
+        raw = cells[1].get_text(strip=True)
+        # raw looks like "Booster BoxPokemon Fusion Strike"
+        # or "Elite Trainer Box [Pokemon Center]Pokemon Fusion Strike"
+        # split on the LAST occurrence of "Pokemon " to get the set name
+        idx = raw.rfind("Pokemon ")
+        if idx > 0:
+            name = raw[:idx].strip()
+            set_name = raw[idx:].strip()
+        else:
+            name = raw.strip()
+            set_name = ""
+        price = _parse_price(cells[3].get_text(strip=True))
+
+        # Skip accessories, portfolios, sleeves
+        skip = ["sleeve", "portfolio", "mini portfolio", "binder", "dice", "coin", "mini tin accessory"]
+        if any(s in name.lower() for s in skip):
+            continue
+
+        results.append({
+            "name": name,
+            "set": set_name,
+            "url": href,
+            "slug": slug,
+            "price": price,
+        })
+
+    _set(cache_key, results)
+    return {"results": results[:limit], "cached": False}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=7890, log_level="info")
