@@ -44,16 +44,43 @@ async function searchPC(query) {
   if (cached) return cached
 
   const url = `${PC_BASE}/search-products?type=prices&q=${encodeURIComponent(query)}`
-  const res = await fetch(url, {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(15000),
-  })
-  if (!res.ok) throw new Error(`pc_error_${res.status}`)
+  const MAX_RETRIES = 2
+  let lastError
 
-  const data = await res.json()
-  const products = Array.isArray(data) ? data : (data.products || [])
-  cacheSet(key, products)
-  return products
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(15000),
+      })
+      if (res.status === 429 || res.status >= 500) {
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+          continue
+        }
+      }
+      if (!res.ok) throw new Error(`pc_error_${res.status}`)
+
+      const data = await res.json()
+      const products = Array.isArray(data) ? data : (data.products || [])
+      cacheSet(key, products)
+      return products
+    } catch (e) {
+      lastError = e
+      if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+        if (attempt < MAX_RETRIES) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+          continue
+        }
+        throw new Error('timeout')
+      }
+      if (attempt < MAX_RETRIES) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+        continue
+      }
+    }
+  }
+  throw lastError || new Error('server_down')
 }
 
 /**

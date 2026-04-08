@@ -2,15 +2,49 @@ const BASE_URL = 'https://api.pokemontcg.io/v2'
 
 const cache = new Map()
 const CACHE_TTL = 1000 * 60 * 60 // 1 hour in memory
+const FETCH_TIMEOUT = 15000 // 15s timeout
+const MAX_RETRIES = 2
+
+async function fetchWithRetry(url, retries = MAX_RETRIES) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT),
+      })
+      if (res.status === 429 || res.status >= 500) {
+        // Rate limited or server error — retry with backoff
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+          continue
+        }
+      }
+      if (!res.ok) throw new Error(`API error ${res.status}`)
+      return await res.json()
+    } catch (e) {
+      if (e.name === 'TimeoutError' || e.name === 'AbortError') {
+        if (attempt < retries) {
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+          continue
+        }
+        throw new Error('timeout')
+      }
+      // Network error — retry
+      if (attempt < retries) {
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)))
+        continue
+      }
+      throw e
+    }
+  }
+}
 
 async function fetchWithCache(url) {
   const cached = cache.get(url)
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data
   }
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`API error ${res.status}`)
-  const data = await res.json()
+  // Return stale cache if fetch fails — better than crashing
+  const data = await fetchWithRetry(url)
   cache.set(url, { data, timestamp: Date.now() })
   return data
 }
