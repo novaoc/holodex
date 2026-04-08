@@ -522,7 +522,10 @@ function pcQueryForItem(item) {
     return `${name} ${set}`.trim()
   }
   if (item.type === 'sealed') {
-    return (item.name || '').trim()
+    // Include set name so PriceCharting returns the right product, not just the most popular one
+    const name = item.name || ''
+    const set = item.setName || ''
+    return `${set} ${name}`.trim()
   }
   return null
 }
@@ -572,8 +575,8 @@ async function refreshPrices() {
         const result = await fetchPrice(query, grade)
         if (result?.price) {
           const updates = { currentValue: result.price }
-          // Backfill or fix image for items that don't have one or have a broken URL
-          if ((!item.imageUrl || item.imageUrl.includes('pricecharting.comhttps')) && result.image) {
+          // Always update image for sealed items on refresh — corrects wrong images from generic queries
+          if (result.image) {
             updates.imageUrl = result.image
           }
           store.updateItem(portfolio.value.id, item.id, updates)

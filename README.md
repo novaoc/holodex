@@ -16,6 +16,20 @@ Built by [Nova](https://github.com/novaoc).
 - Multiple named portfolios, each with a color and their own value chart
 - Combined dashboard showing total collection value, cost basis, and gain/loss
 
+### Deck Builder
+- Create multiple named decks, add cards by search
+- Track deck cost, ownership status (Need / Owned / ✓ Owned)
+- Compare decks against your collection — shows which cards you already own
+- Import current meta decks with one click
+
+### Live Meta Decks
+- Auto-fetches current tournament meta from Limitless TCG
+- Shows top 8 competitive decks ranked by meta share and CP
+- Core cards resolved server-side with exact card match (set code + number)
+- Market prices from TCGPlayer for every card
+- Cached for 24h — instant on repeat visits
+- Updates automatically as tournament results shift
+
 ### Browse & Search
 - Browse all TCG sets — logos, series, release dates, card counts
 - Click into any set to see the full card list (paginated grid)
