@@ -163,19 +163,27 @@ export async function getJapaneseSets() {
   const url = 'https://api.tcgdex.net/v2/ja/sets'
   const data = await fetchWithCache(url)
   sortJapaneseSets(data)
-  return data.map(s => ({
-    id: s.id,
-    name: JP_EN_NAMES[s.id] || s.name,
-    nameJp: s.name,
-    series: '',
-    total: s.cardCount?.total || 0,
-    printedTotal: s.cardCount?.official || 0,
-    releaseDate: s.releaseDate || null,
-    images: { logo: null, symbol: null },
-    _lang: 'ja',
-    _series: jpSetToSeries(s.id),
-    _hasImages: !!jpSetToSeries(s.id)
-  }))
+  return data.map(s => {
+    const series = jpSetToSeries(s.id)
+    // Use first card image as set thumbnail (tcgdex has no set logos for JP sets)
+    let logo = null
+    if (series) {
+      logo = `https://assets.tcgdex.net/ja/${series}/${s.id}/001/low.webp`
+    }
+    return {
+      id: s.id,
+      name: JP_EN_NAMES[s.id] || s.name,
+      nameJp: s.name,
+      series: '',
+      total: s.cardCount?.total || 0,
+      printedTotal: s.cardCount?.official || 0,
+      releaseDate: s.releaseDate || null,
+      images: { logo, symbol: null },
+      _lang: 'ja',
+      _series: series,
+      _hasImages: !!series
+    }
+  })
 }
 
 export async function getJapaneseCardsBySet(setId, page = 1, pageSize = 36) {
