@@ -172,8 +172,9 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   // Check if a card is Japanese (uses tcgdex API, no bulk endpoint)
   function isJPCard(item) {
     if (item.type !== 'card') return false
-    const setName = item.cardData?.set?.name || ''
-    return setName.startsWith('jp/') || item.cardId?.startsWith('jp/') || item.jp === true
+    if (item._lang === 'ja') return true
+    if (item.cardData?._lang === 'ja') return true
+    return false
   }
 
   // Check if a card's price is stale (older than 6 hours)

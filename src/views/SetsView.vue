@@ -600,6 +600,7 @@ async function confirmBulkAdd() {
       purchaseDate: '',
       notes: '',
       cardId: card.id,
+      _lang: card._lang || null,
       cardData: {
         name: card.name,
         number: card.number,
