@@ -70,6 +70,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     } catch {}
 
     persist()
+    cleanupSnapshots()
   }
 
   function persist() {
@@ -128,6 +129,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       activePortfolioId.value = portfolios.value[0]?.id || null
     }
     persist()
+    cleanupSnapshots()
   }
 
   function setActivePortfolio(id) {
@@ -159,6 +161,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     if (!portfolio) return
     portfolio.items = portfolio.items.filter(i => i.id !== itemId)
     persist()
+    cleanupSnapshots()
   }
 
   // Update market prices for all card items (call on load / refresh)
@@ -270,6 +273,36 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     init()
   }
 
+  // Clean up stale snapshots — removes entries for items that no longer exist
+  function cleanupSnapshots() {
+    const validItemIds = new Set()
+    for (const p of portfolios.value) {
+      for (const item of p.items) {
+        validItemIds.add(item.id)
+      }
+    }
+
+    let changed = false
+    for (const [portfolioId, list] of Object.entries(snapshots.value)) {
+      for (const snap of list) {
+        for (const itemId of Object.keys(snap.values)) {
+          if (!validItemIds.has(itemId)) {
+            delete snap.values[itemId]
+            changed = true
+          }
+        }
+      }
+      // Remove snapshots with no values left
+      const nonEmpty = list.filter(s => Object.keys(s.values).length > 0)
+      if (nonEmpty.length !== list.length) {
+        snapshots.value[portfolioId] = nonEmpty
+        changed = true
+      }
+    }
+
+    if (changed) saveSnapshots(snapshots.value)
+  }
+
   return {
     portfolios,
     activePortfolioId,
@@ -291,6 +324,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     getPortfolioStats,
     recordSnapshot,
     getItemHistory,
-    resetAll
+    resetAll,
+    cleanupSnapshots
   }
 })

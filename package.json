@@ -11,7 +11,6 @@
   "dependencies": {
     "apexcharts": "^5.10.5",
     "pinia": "^3.0.4",
-    "qrcode": "^1.5.4",
     "vue": "^3.5.32",
     "vue-router": "^4.6.4",
     "vue3-apexcharts": "^1.11.1",

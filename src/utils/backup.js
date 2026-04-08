@@ -59,34 +59,54 @@ export function validateBackup(data) {
   return null // valid
 }
 
+/**
+ * Restore a backup into localStorage and reload the page.
+ *
+ * This replaces ALL holodex data atomically:
+ * - Clears existing portfolios, settings, snapshots, and price caches
+ * - Writes the backup data
+ * - Reloads so the Pinia store reinitializes cleanly
+ *
+ * Deleted/changed items are fully reflected because we wipe first,
+ * then write only what's in the backup. No stale data survives.
+ */
 export function importBackup(data) {
   const result = { portfolios: 0, snapshots: 0, caches: 0 }
 
-  // Restore portfolios
+  // 1. Clear all existing holodex data
+  for (const key of Object.values(STORAGE_KEYS)) {
+    localStorage.removeItem(key)
+  }
+  const oldCacheKeys = Object.keys(localStorage).filter(k => k.startsWith('ph_cache_'))
+  oldCacheKeys.forEach(k => localStorage.removeItem(k))
+
+  // 2. Write backup data
   if (data.data.portfolios) {
     localStorage.setItem(STORAGE_KEYS.portfolios, JSON.stringify(data.data.portfolios))
     result.portfolios = data.data.portfolios.portfolios?.length || 0
   }
 
-  // Restore settings
   if (data.data.settings) {
     localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(data.data.settings))
   }
 
-  // Restore snapshots
   if (data.data.snapshots) {
     localStorage.setItem(STORAGE_KEYS.snapshots, JSON.stringify(data.data.snapshots))
     const portfolioIds = Object.keys(data.data.snapshots)
     result.snapshots = portfolioIds.reduce((s, id) => s + (data.data.snapshots[id]?.length || 0), 0)
   }
 
-  // Restore price caches
+  // Only restore price caches from the backup — don't keep stale ones
   if (data.data.priceCache) {
     for (const [key, val] of Object.entries(data.data.priceCache)) {
       localStorage.setItem(key, typeof val === 'string' ? val : JSON.stringify(val))
       result.caches++
     }
   }
+
+  // 3. Reload so the store picks up the restored state cleanly
+  //    Using replace() avoids adding a history entry
+  window.location.replace(window.location.pathname)
 
   return result
 }

@@ -96,14 +96,6 @@
 
       <div class="settings-item">
         <div>
-          <div class="settings-item-label">Sync with Device</div>
-          <div class="settings-item-sub">Transfer your collection to another device via QR code or copy/paste</div>
-        </div>
-        <button class="btn btn-secondary btn-sm" @click="showLocalSync = true">↑↓ Transfer</button>
-      </div>
-
-      <div class="settings-item">
-        <div>
           <div class="settings-item-label">Export Backup</div>
           <div class="settings-item-sub">Download all portfolios, settings, and price snapshots</div>
         </div>
@@ -124,66 +116,8 @@
       <div v-if="importResult" class="settings-item" style="border-bottom:none">
         <div class="import-result" :class="importResult.error ? 'error' : 'success'">
           {{ importResult.error || `Restored ${importResult.portfolios} portfolio(s), ${importResult.snapshots} snapshot(s)` }}
-          <span v-if="!importResult.error" class="import-reload" @click="location.reload()">Reload to apply</span>
         </div>
       </div>
-    </div>
-
-    <!-- Cloud Sync -->
-    <div class="settings-section card mb-4">
-      <h3 class="settings-section-title">Cloud Sync</h3>
-      <p class="settings-desc">Connect a cloud account to sync your collection across devices. No database needed — your data lives in your cloud storage.</p>
-
-      <!-- Not connected -->
-      <template v-if="!syncConnected">
-        <div class="settings-item">
-          <div>
-            <div class="settings-item-label">Google Drive</div>
-            <div class="settings-item-sub">Read/write access to a hidden app folder only — nothing visible in your Drive</div>
-          </div>
-          <button class="btn btn-secondary btn-sm" :disabled="syncLoading" @click="connectGoogle">Connect</button>
-        </div>
-        <div class="settings-item">
-          <div>
-            <div class="settings-item-label">Dropbox</div>
-            <div class="settings-item-sub">Read/write access to an app folder only — nothing else in your Dropbox</div>
-          </div>
-          <button class="btn btn-secondary btn-sm" :disabled="syncLoading" @click="connectDropbox">Connect</button>
-        </div>
-        <div v-if="syncResult?.error" class="settings-item" style="border-bottom:none">
-          <div class="import-result error">{{ syncResult.error }}</div>
-        </div>
-      </template>
-
-      <!-- Connected -->
-      <template v-else>
-        <div class="settings-item">
-          <div>
-            <div class="settings-item-label">{{ syncProviderName }}</div>
-            <div class="settings-item-sub">
-              <span v-if="syncState.lastSyncedAt">Last synced: {{ formatSyncTime(syncState.lastSyncedAt) }}</span>
-              <span v-else>Connected — not yet synced</span>
-            </div>
-          </div>
-          <span class="badge badge-success">Connected</span>
-        </div>
-
-        <div class="settings-item">
-          <div class="sync-actions">
-            <button class="btn btn-primary btn-sm" :disabled="syncLoading" @click="doSync">
-              {{ syncLoading ? 'Syncing...' : '↑↓ Sync Now' }}
-            </button>
-            <button class="btn btn-ghost btn-sm text-danger" @click="doDisconnect">Disconnect</button>
-          </div>
-        </div>
-
-        <div v-if="syncResult" class="settings-item" style="border-bottom:none">
-          <div class="import-result" :class="syncResult.error ? 'error' : 'success'">
-            {{ syncResult.error || (syncResult.direction === 'push' ? 'Pushed local data to cloud' : 'Pulled cloud data to local') }}
-            <span v-if="syncResult.direction === 'pull'" class="import-reload" @click="location.reload()">Reload to apply</span>
-          </div>
-        </div>
-      </template>
     </div>
 
     <!-- About -->
@@ -249,8 +183,6 @@
       </div>
     </transition>
   </div>
-
-  <LocalSyncModal v-if="showLocalSync" @close="showLocalSync = false" />
 </template>
 
 <script setup>
@@ -259,14 +191,11 @@ import { useRouter } from 'vue-router'
 import { usePortfolioStore } from '../stores/portfolio'
 import { exportPortfolioToExcel, exportAllPortfolios } from '../utils/excel'
 import { exportBackup, validateBackup, importBackup } from '../utils/backup'
-import { createGoogleSync, createDropboxSync, performSync, getSyncState, isAnyConnected } from '../utils/sync'
-import LocalSyncModal from '../components/LocalSyncModal.vue'
 const store = usePortfolioStore()
 const router = useRouter()
 
 const confirmReset = ref(false)
 const resetConfirmText = ref('')
-const showLocalSync = ref(false)
 
 const totalItems = computed(() => store.portfolios.reduce((s, p) => s + p.items.length, 0))
 
@@ -329,91 +258,6 @@ function handleImport(e) {
   }
   reader.readAsText(file)
   e.target.value = '' // reset so re-selecting same file works
-}
-
-// ── Cloud Sync ──
-
-// OAuth client IDs — must be set up in Google Cloud Console / Dropbox App Console
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-const DROPBOX_APP_KEY = import.meta.env.VITE_DROPBOX_APP_KEY || ''
-
-const syncState = ref(getSyncState())
-const syncLoading = ref(false)
-const syncResult = ref(null)
-
-const syncConnected = computed(() => !!syncState.value.token && !!syncState.value.provider)
-const syncProviderName = computed(() => {
-  if (syncState.value.provider === 'google') return 'Google Drive'
-  if (syncState.value.provider === 'dropbox') return 'Dropbox'
-  return ''
-})
-
-function _getAdapter() {
-  if (syncState.value.provider === 'google') return createGoogleSync(GOOGLE_CLIENT_ID)
-  if (syncState.value.provider === 'dropbox') return createDropboxSync(DROPBOX_APP_KEY)
-  return null
-}
-
-async function connectGoogle() {
-  if (!GOOGLE_CLIENT_ID) {
-    syncResult.value = { error: 'Google Client ID not configured — add VITE_GOOGLE_CLIENT_ID to .env' }
-    return
-  }
-  syncLoading.value = true
-  syncResult.value = null
-  try {
-    const adapter = createGoogleSync(GOOGLE_CLIENT_ID)
-    await adapter.connect()
-    syncState.value = getSyncState()
-  } catch (e) {
-    syncResult.value = { error: e.message }
-  }
-  syncLoading.value = false
-}
-
-async function connectDropbox() {
-  if (!DROPBOX_APP_KEY) {
-    syncResult.value = { error: 'Dropbox App Key not configured — add VITE_DROPBOX_APP_KEY to .env' }
-    return
-  }
-  syncLoading.value = true
-  syncResult.value = null
-  try {
-    const adapter = createDropboxSync(DROPBOX_APP_KEY)
-    await adapter.connect()
-    syncState.value = getSyncState()
-  } catch (e) {
-    syncResult.value = { error: e.message }
-  }
-  syncLoading.value = false
-}
-
-async function doSync() {
-  syncLoading.value = true
-  syncResult.value = null
-  try {
-    const adapter = _getAdapter()
-    if (!adapter) throw new Error('No sync adapter')
-    syncResult.value = await performSync(adapter)
-    syncState.value = getSyncState()
-  } catch (e) {
-    syncResult.value = { error: e.message }
-  }
-  syncLoading.value = false
-}
-
-function doDisconnect() {
-  const adapter = _getAdapter()
-  if (adapter) adapter.disconnect()
-  syncState.value = getSyncState()
-  syncResult.value = null
-}
-
-function formatSyncTime(iso) {
-  try {
-    const d = new Date(iso)
-    return d.toLocaleString()
-  } catch { return iso }
 }
 </script>
 
@@ -492,15 +336,7 @@ function formatSyncTime(iso) {
 }
 .import-result.success { background: rgba(63, 185, 80, 0.1); color: #3fb950; }
 .import-result.error { background: rgba(248, 81, 73, 0.1); color: #f85149; }
-.import-reload {
-  margin-left: 8px;
-  cursor: pointer;
-  text-decoration: underline;
-  font-weight: 600;
-}
-.import-reload:hover { opacity: 0.8; }
 .backup-import-btn { cursor: pointer; }
-.sync-actions { display: flex; gap: 8px; align-items: center; width: 100%; }
 
 @media (max-width: 640px) {
   .about-grid { grid-template-columns: 1fr; }
