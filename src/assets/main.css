@@ -334,6 +334,7 @@ a:hover { text-decoration: underline; }
   .grid-3 { grid-template-columns: 1fr 1fr; }
   .grid-4 { grid-template-columns: 1fr 1fr; }
   .form-row-3 { grid-template-columns: 1fr 1fr; }
+  .btn { min-height: 36px; }
 }
 
 @media (max-width: 640px) {
@@ -361,8 +362,9 @@ a:hover { text-decoration: underline; }
   .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .table { min-width: 560px; }
 
-  /* Main content padding */
-  /* (handled by App.vue scoped already, reinforcing here) */
+  /* Touch-friendly buttons */
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 36px; }
 }
 
 @media (max-width: 480px) {

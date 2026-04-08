@@ -285,6 +285,10 @@ onMounted(buildPortfolioHistory)
   flex-wrap: wrap;
   gap: 8px;
 }
+@media (max-width: 640px) {
+  .chart-top { flex-direction: column; }
+  .chart-controls { width: 100%; justify-content: flex-start; overflow-x: auto; }
+}
 .portfolio-value { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .portfolio-change { font-size: 13px; margin-top: 4px; }
 

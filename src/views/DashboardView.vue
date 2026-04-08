@@ -213,4 +213,12 @@ onMounted(async () => {
 .mini-card-img { width: 30px; height: 42px; object-fit: contain; border-radius: 2px; }
 .mini-more { font-size: 11px; color: var(--text-muted); margin-left: 4px; }
 .portfolio-empty-items { font-size: 12px; height: 42px; display: flex; align-items: center; }
+
+@media (max-width: 640px) {
+  .dashboard { padding: 0; }
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .portfolios-grid { grid-template-columns: 1fr; gap: 12px; }
+  .portfolio-card-stats { gap: 12px; }
+  .portfolio-card-body { padding: 12px; }
+}
 </style>
