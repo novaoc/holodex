@@ -40,6 +40,14 @@ html, body, #app {
   overscroll-behavior: none;
 }
 
+/* Prevent iOS drag/select/callout on all interactive elements */
+img, button, a, .card-result, .set-card, .card-img-wrap, .set-logo-wrap,
+.card-detail-panel, .bottom-sheet, .card-overlay, .card-img-placeholder {
+  -webkit-user-drag: none;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
 /* Scrollbars */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
