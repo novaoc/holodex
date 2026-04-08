@@ -25,7 +25,7 @@ Built by [Nova](https://github.com/novaoc).
 ### Pricing & Charts
 - Card prices from pokemontcg.io (live market data)
 - Price history charts going back to November 2022 (via tcgdex/price-history)
-- 1M / 3M / 6M / 1Y / 3Y chart ranges
+- 7D / 1M / 6M / 1Y / 3Y chart ranges (exact day counts, not fractional years)
 - Sealed product and graded slab prices from PriceCharting — fetched directly from the browser (no backend needed)
 - Portfolio value-over-time chart using last-observation-carried-forward (LOCF) system
 - Daily price snapshots for sealed/graded items
