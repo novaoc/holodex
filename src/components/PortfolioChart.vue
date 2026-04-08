@@ -158,14 +158,18 @@ async function buildPortfolioHistory() {
   const cardItems = allItems.filter(i => i.type === 'card' && i.cardId)
   const historyMap = {}
 
-  await Promise.allSettled(
-    cardItems.map(async item => {
-      try {
-        const hist = await fetchPriceHistory(item.cardId)
-        if (hist) historyMap[item.cardId] = hist
-      } catch {}
-    })
-  )
+  // Batched — max 5 concurrent to avoid hammering GitHub
+  for (let i = 0; i < cardItems.length; i += 5) {
+    const batch = cardItems.slice(i, i + 5)
+    await Promise.allSettled(
+      batch.map(async item => {
+        try {
+          const hist = await fetchPriceHistory(item.cardId)
+          if (hist) historyMap[item.cardId] = hist
+        } catch {}
+      })
+    )
+  }
 
   // Build per-item sorted series (keyed by item.id)
   const itemSeriesMap = {}

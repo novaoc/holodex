@@ -553,36 +553,43 @@ async function refreshPrices() {
   const ebayItems = portfolio.value.items.filter(i => i.type === 'graded' || i.type === 'sealed')
   let updated = 0
 
-  await Promise.allSettled([
-    // Raw cards — pokemontcg.io
-    ...cardItems.map(async item => {
-      try {
-        const card = await getCard(item.cardId)
-        const priceResult = getMarketPrice(card, item.priceVariant)
-        const price = priceResult?.price || priceResult
-        if (price) {
-          store.updateItem(portfolio.value.id, item.id, { currentMarketPrice: price })
-          updated++
-        }
-      } catch {}
+  // Batched parallel execution — max 5 concurrent to avoid hammering APIs
+  async function batchMap(items, fn, concurrency = 5) {
+    const results = []
+    for (let i = 0; i < items.length; i += concurrency) {
+      const batch = items.slice(i, i + concurrency)
+      const batchResults = await Promise.allSettled(batch.map(fn))
+      results.push(...batchResults)
+    }
+    return results
+  }
+
+  await Promise.all([
+    // Raw cards — pokemontcg.io (batched)
+    batchMap(cardItems, async item => {
+      const card = await getCard(item.cardId)
+      const priceResult = getMarketPrice(card, item.priceVariant)
+      const price = priceResult?.price || priceResult
+      if (price) {
+        store.updateItem(portfolio.value.id, item.id, { currentMarketPrice: price })
+        updated++
+      }
     }),
-    // Graded slabs + sealed — PriceCharting (scraped)
-    ...ebayItems.map(async item => {
+    // Graded slabs + sealed — PriceCharting (batched)
+    batchMap(ebayItems, async item => {
       const query = pcQueryForItem(item)
       const grade = pcGradeForItem(item)
       if (!query) return
-      try {
-        const result = await fetchPrice(query, grade)
-        if (result?.price) {
-          const updates = { currentValue: result.price }
-          // Always update image for sealed items on refresh — corrects wrong images from generic queries
-          if (result.image) {
-            updates.imageUrl = result.image
-          }
-          store.updateItem(portfolio.value.id, item.id, updates)
-          updated++
+      const result = await fetchPrice(query, grade)
+      if (result?.price) {
+        const updates = { currentValue: result.price }
+        // Always update image for sealed items on refresh — corrects wrong images from generic queries
+        if (result.image) {
+          updates.imageUrl = result.image
         }
-      } catch {}
+        store.updateItem(portfolio.value.id, item.id, updates)
+        updated++
+      }
     })
   ])
 

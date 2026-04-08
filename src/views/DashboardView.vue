@@ -378,15 +378,15 @@ onMounted(async () => {
   const allCardItems = store.portfolios.flatMap(p =>
     p.items.filter(i => i.type === 'card' && i.cardId).map(i => ({ ...i, portfolioId: p.id }))
   )
-  // Stagger requests to avoid hammering the API
-  for (const item of allCardItems) {
-    try {
+  // Batched — max 3 concurrent to be polite to pokemontcg.io
+  for (let i = 0; i < allCardItems.length; i += 3) {
+    const batch = allCardItems.slice(i, i + 3)
+    await Promise.allSettled(batch.map(async item => {
       const card = await getCard(item.cardId)
       const result = getMarketPrice(card, item.priceVariant)
       const price = result?.price || result
       if (price) store.updateItem(item.portfolioId, item.id, { currentMarketPrice: price })
-    } catch {}
-    await new Promise(r => setTimeout(r, 100)) // 100ms between requests
+    }))
   }
 })
 </script>
