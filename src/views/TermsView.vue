@@ -36,7 +36,7 @@
             fetched from the pokemontcg.io API. Japanese sets use the tcgdex API.</li>
           <li><strong>Price data</strong> — current prices for graded and sealed products
             are fetched from PriceCharting. Card price history is fetched from tcgdex
-            and our own Cloudflare-hosted price server.</li>
+            and PriceCharting's public JSON API.</li>
           <li><strong>Cross-device sync</strong> — optional sync to jsonbin.io uses an
             API key you provide. Data is transmitted directly from your browser to
             jsonbin.io. We do not intermediate or store your data.</li>
