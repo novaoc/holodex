@@ -98,26 +98,9 @@
             placeholder="Filter cards..."
             style="width:160px"
           />
-          <div class="add-set-wrap">
-            <button class="btn btn-primary btn-sm" @click="showAddSetMenu = !showAddSetMenu">
-              + Add Set
-            </button>
-            <div v-if="showAddSetMenu" class="add-set-dropdown">
-              <div class="add-set-label">Add all cards to:</div>
-              <button
-                v-for="p in store.portfolios"
-                :key="p.id"
-                class="add-set-option"
-                @click="addSetToPortfolio(p.id)"
-              >
-                <span class="portfolio-dot" :style="{ background: p.color }"></span>
-                {{ p.name }}
-                <span class="add-set-count">{{ p.items.length }}</span>
-              </button>
-              <div v-if="addingSet" class="add-set-progress">Adding {{ cards.length }} cards...</div>
-              <div v-if="addSetDone" class="add-set-done">✓ Added!</div>
-            </div>
-          </div>
+          <button class="btn btn-primary btn-sm" @click="openBulkAddModal" :disabled="bulkLoading">
+            {{ bulkLoading ? 'Loading...' : '+ Add Set' }}
+          </button>
         </div>
       </div>
 
@@ -256,11 +239,82 @@
         @added="showAddModal = false"
       />
     </transition>
+
+    <!-- Bulk add modal -->
+    <transition name="fade">
+      <div v-if="showBulkAddModal" class="modal-overlay" @click.self="showBulkAddModal = false">
+        <div class="bulk-modal">
+          <div class="bulk-header">
+            <h3>Add Cards from {{ selectedSet?.name }}</h3>
+            <button class="btn btn-ghost btn-icon" @click="showBulkAddModal = false">✕</button>
+          </div>
+
+          <div class="bulk-controls">
+            <select v-model="bulkAddPortfolioId" class="input input-sm" style="width:160px">
+              <option v-for="p in store.portfolios" :key="p.id" :value="p.id">{{ p.name }}</option>
+            </select>
+            <div class="bulk-filter-tabs">
+              <button class="bulk-tab" :class="{ active: bulkAddFilter === 'all' }" @click="bulkAddFilter = 'all'">
+                All ({{ bulkAddCards.length }})
+              </button>
+              <button class="bulk-tab" :class="{ active: bulkAddFilter === 'needed' }" @click="bulkAddFilter = 'needed'">
+                Needed ({{ bulkNeededCount }})
+              </button>
+            </div>
+            <div class="bulk-actions-row">
+              <button class="btn btn-ghost btn-sm" @click="bulkSelectAll">Select all</button>
+              <button class="btn btn-ghost btn-sm" @click="bulkDeselectAll">Deselect all</button>
+            </div>
+          </div>
+
+          <div class="bulk-grid">
+            <div
+              v-for="card in filteredBulkCards"
+              :key="card.id"
+              class="bulk-card"
+              :class="{ 'bulk-checked': card.checked }"
+              @click="toggleBulkCard(card.id)"
+            >
+              <div class="bulk-card-check">
+                <input type="checkbox" :checked="card.checked" @click.stop="toggleBulkCard(card.id)" />
+              </div>
+              <img
+                v-if="card.images?.small"
+                :src="card.images.small"
+                :alt="card.name"
+                class="bulk-card-img"
+                loading="lazy"
+              />
+              <div class="bulk-card-info">
+                <div class="bulk-card-name">{{ card.name }}</div>
+                <div class="bulk-card-meta">#{{ card.number }} · {{ card.price ? '$' + card.price.toFixed(2) : '—' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bulk-footer">
+            <div class="bulk-summary">
+              <span class="bulk-stat"><strong>{{ bulkSelectedCount }}</strong> selected · <strong>{{ bulkNeededCount }}</strong> needed</span>
+              <span class="bulk-cost" v-if="bulkNeededCount > 0">
+                ${{ bulkNeededCost.toFixed(2) }} to complete
+              </span>
+            </div>
+            <button
+              class="btn btn-primary"
+              :disabled="bulkAdding || bulkSelectedCount === 0"
+              @click="confirmBulkAdd"
+            >
+              {{ bulkAdding ? 'Adding...' : bulkAddDone ? '✓ Added!' : 'Add ' + bulkSelectedCount + ' Cards' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { getSets, getCardsBySet, getMarketPrice, formatVariantLabel, getJapaneseSets, getJapaneseCardsBySet, getJapaneseCardDetail } from '../services/pokemonApi'
 import { usePortfolioStore } from '../stores/portfolio'
 import PriceChart from '../components/PriceChart.vue'
@@ -308,10 +362,28 @@ const selectedCard = ref(null)
 const showAddModal = ref(false)
 const modalCard = ref(null)
 
-// Add set to portfolio
-const showAddSetMenu = ref(false)
-const addingSet = ref(false)
-const addSetDone = ref(false)
+// Bulk add modal
+const showBulkAddModal = ref(false)
+const bulkAddCards = ref([])
+const bulkAddPortfolioId = ref('')
+const bulkAddFilter = ref('all') // 'all' | 'needed'
+const bulkAdding = ref(false)
+const bulkAddDone = ref(false)
+const bulkLoading = ref(false)
+
+const filteredBulkCards = computed(() => {
+  if (bulkAddFilter.value === 'needed') return bulkAddCards.value.filter(c => !c.checked)
+  return bulkAddCards.value
+})
+
+const bulkSelectedCount = computed(() => bulkAddCards.value.filter(c => c.checked).length)
+const bulkNeededCount = computed(() => bulkAddCards.value.filter(c => !c.checked).length)
+const bulkNeededCost = computed(() => {
+  return bulkAddCards.value.filter(c => !c.checked).reduce((s, c) => s + (c.price || 0), 0)
+})
+const bulkSelectedCost = computed(() => {
+  return bulkAddCards.value.filter(c => c.checked).reduce((s, c) => s + (c.price || 0), 0)
+})
 
 const filteredSets = computed(() => {
   const q = setFilter.value.toLowerCase()
@@ -449,13 +521,26 @@ function formatDate(dateStr) {
   return `${months[parseInt(m, 10) - 1]} ${y}`
 }
 
-async function addSetToPortfolio(portfolioId) {
-  if (addingSet.value) return
-  addingSet.value = true
-  addSetDone.value = false
-  showAddSetMenu.value = false
+async function openBulkAddModal() {
+  if (!selectedSet.value || bulkLoading.value) return
+  bulkLoading.value = true
+  bulkAddDone.value = false
+  bulkAddFilter.value = 'all'
 
-  // Load all cards for this set (not just current page)
+  // Default to first portfolio
+  if (!bulkAddPortfolioId.value && store.portfolios.length) {
+    bulkAddPortfolioId.value = store.portfolios[0].id
+  }
+
+  // Get already-owned card IDs for this set in the selected portfolio
+  const portfolio = store.portfolios.find(p => p.id === bulkAddPortfolioId.value)
+  const ownedIds = new Set(
+    (portfolio?.items || [])
+      .filter(i => i.type === 'card' && i.cardData?.set?.id === selectedSet.value.id)
+      .map(i => i.cardId)
+  )
+
+  // Load all cards
   let allCards = []
   if (selectedSet.value._lang === 'ja') {
     const data = await getJapaneseCardsBySet(selectedSet.value.id, 1, 999)
@@ -465,11 +550,50 @@ async function addSetToPortfolio(portfolioId) {
     allCards = data.data || []
   }
 
-  let added = 0
-  for (const card of allCards) {
-    const price = getMarketPrice(card)
-    const priceVal = price?.price || price || 0
-    store.addItem(portfolioId, {
+  // Build bulk card list with prices
+  bulkAddCards.value = allCards.map(card => {
+    let price = 0
+    if (selectedSet.value._lang === 'ja') {
+      // JP cards: use tcgplayer prices if available (from detail fetch)
+      const vals = card.tcgplayer?.prices ? Object.values(card.tcgplayer.prices)[0] : null
+      price = vals?.market || vals?.mid || 0
+    } else {
+      const r = getMarketPrice(card)
+      price = r?.price || r || 0
+    }
+    return {
+      id: card.id,
+      name: card.name,
+      number: card.number,
+      images: card.images,
+      rarity: card.rarity,
+      supertype: card.supertype,
+      set: card.set,
+      price,
+      checked: !ownedIds.has(card.id), // pre-check cards NOT already owned
+      _lang: card._lang || 'en',
+    }
+  })
+
+  bulkLoading.value = false
+  showBulkAddModal.value = true
+}
+
+function toggleBulkCard(cardId) {
+  const card = bulkAddCards.value.find(c => c.id === cardId)
+  if (card) card.checked = !card.checked
+}
+
+function bulkSelectAll() { bulkAddCards.value.forEach(c => { c.checked = true }) }
+function bulkDeselectAll() { bulkAddCards.value.forEach(c => { c.checked = false }) }
+
+async function confirmBulkAdd() {
+  if (bulkAdding.value || !bulkAddPortfolioId.value) return
+  bulkAdding.value = true
+
+  const toAdd = bulkAddCards.value.filter(c => c.checked)
+  for (const card of toAdd) {
+    store.addItem(bulkAddPortfolioId.value, {
       type: 'card',
       quantity: 1,
       purchasePrice: 0,
@@ -483,18 +607,29 @@ async function addSetToPortfolio(portfolioId) {
         set: { id: card.set?.id, name: card.set?.name },
         rarity: card.rarity,
         supertype: card.supertype,
-        _lang: card._lang || 'en',
+        _lang: card._lang,
       },
-      priceVariant: price?.variant || '',
-      currentMarketPrice: priceVal,
+      priceVariant: '',
+      currentMarketPrice: card.price,
     })
-    added++
   }
 
-  addingSet.value = false
-  addSetDone.value = true
-  setTimeout(() => { addSetDone.value = false }, 2000)
+  bulkAdding.value = false
+  bulkAddDone.value = true
+  setTimeout(() => { showBulkAddModal.value = false; bulkAddDone.value = false }, 1500)
 }
+
+// Update checked state when portfolio changes
+watch(bulkAddPortfolioId, () => {
+  if (!showBulkAddModal.value || !selectedSet.value) return
+  const portfolio = store.portfolios.find(p => p.id === bulkAddPortfolioId.value)
+  const ownedIds = new Set(
+    (portfolio?.items || [])
+      .filter(i => i.type === 'card' && i.cardData?.set?.id === selectedSet.value.id)
+      .map(i => i.cardId)
+  )
+  bulkAddCards.value.forEach(c => { c.checked = !ownedIds.has(c.id) })
+})
 
 onMounted(loadSets)
 </script>
@@ -575,41 +710,58 @@ onMounted(loadSets)
 .browse-symbol { width: 22px; height: 22px; object-fit: contain; }
 .set-browse-filters { display: flex; gap: 8px; align-items: center; }
 
-/* Add set to portfolio dropdown */
-.add-set-wrap { position: relative; }
-.add-set-dropdown {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 8px;
-  min-width: 200px;
-  z-index: 50;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+/* Bulk add modal */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 16px;
 }
-.add-set-label { font-size: 11px; color: var(--text-muted); padding: 4px 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-.add-set-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 8px;
-  border: none;
-  background: none;
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: var(--radius);
-  transition: background 0.15s;
-  text-align: left;
+.bulk-modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; width: 100%; max-width: 640px; max-height: 85vh;
+  display: flex; flex-direction: column;
 }
-.add-set-option:hover { background: var(--bg-hover); }
-.portfolio-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.add-set-count { margin-left: auto; font-size: 11px; color: var(--text-muted); }
-.add-set-progress { font-size: 12px; color: var(--accent); padding: 8px; text-align: center; }
-.add-set-done { font-size: 12px; color: var(--success, #3fb950); padding: 8px; text-align: center; }
+.bulk-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.bulk-header h3 { font-size: 16px; margin: 0; }
+.bulk-controls {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 12px 20px; border-bottom: 1px solid var(--border);
+}
+.bulk-filter-tabs { display: flex; gap: 2px; background: var(--bg); border-radius: 6px; padding: 2px; }
+.bulk-tab {
+  padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;
+  border: none; background: none; color: var(--text-muted);
+}
+.bulk-tab.active { background: var(--bg-card); color: var(--text-primary); font-weight: 600; }
+.bulk-actions-row { display: flex; gap: 4px; margin-left: auto; }
+.bulk-grid {
+  flex: 1; overflow-y: auto; padding: 12px 20px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;
+}
+.bulk-card {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--bg);
+  transition: border-color 0.15s;
+}
+.bulk-card:hover { border-color: var(--accent); }
+.bulk-card.bulk-checked { border-color: var(--accent); background: rgba(134, 59, 255, 0.06); }
+.bulk-card-check { flex-shrink: 0; }
+.bulk-card-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+.bulk-card-img { width: 32px; height: 45px; object-fit: contain; border-radius: 4px; flex-shrink: 0; }
+.bulk-card-info { flex: 1; min-width: 0; }
+.bulk-card-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bulk-card-meta { font-size: 11px; color: var(--text-muted); }
+.bulk-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 20px; border-top: 1px solid var(--border);
+}
+.bulk-summary { display: flex; flex-direction: column; gap: 2px; }
+.bulk-stat { font-size: 12px; color: var(--text-secondary); }
+.bulk-cost { font-size: 13px; color: var(--green, #3fb950); font-weight: 600; }
 
 /* Card grid — same as SearchView */
 .cards-grid {
