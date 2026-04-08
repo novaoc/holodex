@@ -100,6 +100,8 @@
         </div>
       </div>
     </transition>
+
+    <InstallPrompt />
   </div>
 </template>
 
@@ -107,6 +109,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePortfolioStore } from './stores/portfolio'
+import InstallPrompt from './components/InstallPrompt.vue'
 
 const store = usePortfolioStore()
 const route = useRoute()
