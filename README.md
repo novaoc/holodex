@@ -40,9 +40,11 @@ Built by [Nova](https://github.com/novaoc).
 - Card prices from pokemontcg.io (live market data)
 - Price history charts going back to November 2022 (via tcgdex/price-history)
 - 7D / 1M / 6M / 1Y / 3Y chart ranges (exact day counts, not fractional years)
+- Explicit date formats per range — 7D/1M show day labels, 6M/1Y/3Y show month labels
 - Sealed product and graded slab prices from PriceCharting — fetched directly from the browser (no backend needed)
 - Portfolio value-over-time chart using last-observation-carried-forward (LOCF) system
-- Daily price snapshots for sealed/graded items
+- Daily price snapshots for sealed/graded items — auto-recorded on app load, 3 years of history retained
+- Optimized API usage — 404s cached as misses, chart rebuilds debounced, zero API calls on daily use
 
 ### Deck Builder
 - Create multiple named decks and track them alongside your collection
