@@ -297,7 +297,14 @@ function applyRange(points) {
   chartSeries.value = [{ name: props.label, data: display }]
 }
 
-watch(() => props.portfolios, buildPortfolioHistory, { deep: true })
+// Debounce rebuild so rapid price refreshes don't trigger multiple full chart rebuilds
+let rebuildTimer = null
+function debouncedRebuild() {
+  clearTimeout(rebuildTimer)
+  rebuildTimer = setTimeout(buildPortfolioHistory, 500)
+}
+
+watch(() => props.portfolios, debouncedRebuild, { deep: true })
 onMounted(buildPortfolioHistory)
 </script>
 

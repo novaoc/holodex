@@ -68,6 +68,10 @@ function clearOldCaches() {
   const keys = Object.keys(localStorage).filter(k => k.startsWith(LS_PREFIX))
   // Remove oldest half
   keys.slice(0, Math.ceil(keys.length / 2)).forEach(k => localStorage.removeItem(k))
+  // Also clean miss caches
+  Object.keys(localStorage)
+    .filter(k => k.startsWith(LS_PREFIX) && k.endsWith('_miss'))
+    .forEach(k => localStorage.removeItem(k))
 }
 
 // Fetch raw price history from GitHub
@@ -75,6 +79,11 @@ export async function fetchPriceHistory(cardId) {
   const cacheKey = getCacheKey(cardId)
   const cached = getFromLocalStorage(cacheKey)
   if (cached) return cached
+
+  // Cache "not found" so we don't re-fetch 404s
+  const missKey = cacheKey + '_miss'
+  const miss = getFromLocalStorage(missKey)
+  if (miss) return null
 
   const parsed = parseCardId(cardId)
   if (!parsed) return null
@@ -84,12 +93,21 @@ export async function fetchPriceHistory(cardId) {
 
   try {
     const res = await fetch(url)
-    if (!res.ok) return null
+    if (!res.ok) {
+      // Cache the miss for 24h so we don't re-fetch
+      saveToLocalStorage(missKey, 'miss')
+      return null
+    }
     const json = await res.json()
     const result = processHistoryData(json)
-    saveToLocalStorage(cacheKey, result)
+    if (result) {
+      saveToLocalStorage(cacheKey, result)
+    } else {
+      saveToLocalStorage(missKey, 'miss')
+    }
     return result
   } catch {
+    saveToLocalStorage(missKey, 'miss')
     return null
   }
 }
