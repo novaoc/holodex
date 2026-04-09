@@ -90,6 +90,8 @@
         </div>
       </div>
     </transition>
+
+    <DeckTourModal />
   </div>
 </template>
 
@@ -97,6 +99,7 @@
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/decks'
+import DeckTourModal from '../components/DeckTourModal.vue'
 
 const deckStore = useDeckStore()
 const router = useRouter()
