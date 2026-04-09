@@ -114,13 +114,17 @@ function close() {
 
 .tour-video-wrap {
   width: 100%;
-  /* Force 16:9 so video fills the area without black bars */
-  aspect-ratio: 16 / 9;
+  position: relative;
+  /* 16:9 ratio via padding-bottom: 9/16 = 56.25% */
+  padding-bottom: 56.25%;
   background: #000;
-  line-height: 0;
+  overflow: hidden;
 }
 
 .tour-video {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   display: block;

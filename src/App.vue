@@ -1,11 +1,11 @@
 <template>
   <div class="app-layout">
     <aside class="sidebar" :class="{ open: sidebarOpen }">
-      <div class="sidebar-logo">
+      <a href="/" class="sidebar-logo" @click.prevent="hardRefresh">
         <span class="logo-icon">⬡</span>
         <span class="logo-text">Rarebox</span>
-        <button class="btn btn-ghost btn-icon sidebar-close" @click="sidebarOpen = false">✕</button>
-      </div>
+      </a>
+      <button class="btn btn-ghost btn-icon sidebar-close" @click="sidebarOpen = false" style="position:absolute;top:20px;right:12px;z-index:10">✕</button>
 
       <nav class="sidebar-nav">
         <router-link to="/" class="nav-item" @click="sidebarOpen = false">
@@ -146,6 +146,10 @@ const currentPageTitle = computed(() => {
   return 'Rarebox'
 })
 
+function hardRefresh() {
+  window.location.href = '/'
+}
+
 function createPortfolio() {
   if (!newPortfolioName.value.trim()) return
   const p = store.createPortfolio(newPortfolioName.value.trim(), newPortfolioColor.value)
@@ -179,6 +183,7 @@ onMounted(() => {
   overflow-x: hidden;
   flex-shrink: 0;
   transition: transform 0.25s ease;
+  position: relative;
 }
 
 .sidebar-logo {
@@ -187,7 +192,11 @@ onMounted(() => {
   gap: 10px;
   padding: 20px 16px 16px;
   border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
 }
+.sidebar-logo:hover { opacity: 0.8; }
 .logo-icon { font-size: 22px; color: var(--accent); }
 .logo-text { font-size: 18px; font-weight: 700; color: var(--text-primary); flex: 1; }
 .sidebar-close { display: none; }
