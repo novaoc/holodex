@@ -168,11 +168,7 @@ function close() {
     border-radius: var(--radius-lg);
   }
 
-  .tour-video-wrap {
-    /* Fill ~70% of viewport height minus padding */
-    padding-bottom: 0;
-    height: calc(70vh - 80px);
-  }
+
 
   .tour-close {
     top: 10px;
