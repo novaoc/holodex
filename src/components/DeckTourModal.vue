@@ -6,6 +6,7 @@
         <div class="tour-video-wrap">
           <video
             ref="videoRef"
+            :key="videoKey"
             src="/videos/decks-tour.mp4"
             autoplay
             muted
@@ -15,8 +16,11 @@
           />
         </div>
         <div class="tour-footer">
-          <span class="tour-hint" v-if="!ended">Tap ✕ or outside to skip</span>
-          <button v-else class="btn btn-primary btn-sm tour-done" @click="close">
+          <button v-if="ended" class="btn btn-ghost btn-sm tour-replay" @click="replay">
+            Replay
+          </button>
+          <span class="tour-hint" v-else-if="!ended">Tap ✕ or outside to skip</span>
+          <button v-if="ended" class="btn btn-primary btn-sm tour-done" @click="close">
             Got it!
           </button>
         </div>
@@ -33,6 +37,7 @@ const STORAGE_KEY = 'rarebox_deck_tour_seen'
 const show = ref(false)
 const ended = ref(false)
 const videoRef = ref(null)
+const videoKey = ref(0)
 
 onMounted(() => {
   if (!localStorage.getItem(STORAGE_KEY)) {
@@ -42,6 +47,11 @@ onMounted(() => {
 
 function onEnded() {
   ended.value = true
+}
+
+function replay() {
+  ended.value = false
+  videoKey.value++
 }
 
 function close() {
@@ -70,7 +80,7 @@ function close() {
   border-radius: var(--radius-lg);
   overflow: hidden;
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
@@ -79,11 +89,11 @@ function close() {
   top: 8px;
   right: 8px;
   z-index: 10;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   border: 1px solid var(--border);
-  background: rgba(13, 17, 23, 0.8);
+  background: rgba(13, 17, 23, 0.85);
   color: var(--text-muted);
   font-size: 14px;
   cursor: pointer;
@@ -113,16 +123,21 @@ function close() {
 }
 
 .tour-footer {
-  padding: 10px 16px;
+  padding: 12px 16px;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 44px;
+  gap: 12px;
+  min-height: 48px;
 }
 
 .tour-hint {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
+}
+
+.tour-replay {
+  animation: pulse-in 0.3s ease;
 }
 
 .tour-done {
@@ -134,11 +149,11 @@ function close() {
   to { transform: scale(1); opacity: 1; }
 }
 
-/* Mobile: full-width, safe area padding */
+/* Mobile: full-width bottom sheet */
 @media (max-width: 520px) {
   .tour-overlay {
-    padding: 12px;
-    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding: 8px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
     align-items: flex-end;
   }
 
@@ -150,13 +165,24 @@ function close() {
   .tour-close {
     top: 6px;
     right: 6px;
-    width: 32px;
-    height: 32px;
-    font-size: 16px;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .tour-footer {
+    padding: 14px 16px;
+    padding-bottom: max(14px, env(safe-area-inset-bottom));
+  }
+
+  .tour-footer .btn {
+    min-height: 44px;
+    font-size: 15px;
+    padding: 10px 20px;
   }
 }
 
-/* Transition */
+/* Transitions */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.25s ease;
