@@ -292,13 +292,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     portfolios.value = []
     activePortfolioId.value = null
     snapshots.value = {}
-    localStorage.removeItem(STORAGE_KEY)
-    localStorage.removeItem(SETTINGS_KEY)
-    localStorage.removeItem(SNAPSHOTS_KEY)
-    const cacheKeys = Object.keys(localStorage).filter(k => k.startsWith('ph_cache_'))
-    cacheKeys.forEach(k => localStorage.removeItem(k))
-    localStorage.removeItem('rarebox_deck_tour_seen')
-    localStorage.removeItem('rarebox_meta_decks_cache')
+    localStorage.clear()
     init()
   }
 
