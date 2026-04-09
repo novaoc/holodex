@@ -313,6 +313,8 @@
         </div>
       </div>
     </transition>
+
+    <SetsTourModal />
   </div>
 </template>
 
@@ -322,6 +324,7 @@ import { getSets, getCardsBySet, getMarketPrice, formatVariantLabel, getJapanese
 import { usePortfolioStore } from '../stores/portfolio'
 import PriceChart from '../components/PriceChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
+import SetsTourModal from '../components/SetsTourModal.vue'
 
 const store = usePortfolioStore()
 
