@@ -7,7 +7,7 @@
           <video
             ref="videoRef"
             :key="videoKey"
-            src="/videos/sets-tour.mp4"
+            :src="src"
             autoplay
             muted
             playsinline
@@ -19,7 +19,7 @@
           <button v-if="ended" class="btn btn-ghost btn-sm tour-replay" @click="replay">
             Replay
           </button>
-          <span class="tour-hint" v-else-if="!ended">Tap ✕ or outside to skip</span>
+          <span class="tour-hint" v-else>Tap ✕ or outside to skip</span>
           <button v-if="ended" class="btn btn-primary btn-sm tour-done" @click="close">
             Got it!
           </button>
@@ -32,7 +32,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
-const STORAGE_KEY = 'rarebox_sets_tour_seen'
+const props = defineProps({
+  src: { type: String, required: true },
+  storageKey: { type: String, required: true },
+})
 
 const show = ref(false)
 const ended = ref(false)
@@ -40,7 +43,7 @@ const videoRef = ref(null)
 const videoKey = ref(0)
 
 onMounted(() => {
-  if (!localStorage.getItem(STORAGE_KEY)) {
+  if (!localStorage.getItem(props.storageKey)) {
     show.value = true
   }
 })
@@ -56,7 +59,7 @@ function replay() {
 
 function close() {
   show.value = false
-  localStorage.setItem(STORAGE_KEY, '1')
+  localStorage.setItem(props.storageKey, '1')
 }
 </script>
 
@@ -65,12 +68,12 @@ function close() {
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 24px;
 }
 
 .tour-modal {
@@ -79,8 +82,9 @@ function close() {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  width: 100%;
-  max-width: 520px;
+  /* Let the video define the width, cap at viewport */
+  width: fit-content;
+  max-width: min(720px, calc(100vw - 48px));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
@@ -89,13 +93,13 @@ function close() {
   top: 8px;
   right: 8px;
   z-index: 10;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   border: 1px solid var(--border);
   background: rgba(13, 17, 23, 0.85);
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -112,27 +116,30 @@ function close() {
 
 .tour-video-wrap {
   width: 100%;
+  /* Force 16:9 so video fills the area without black bars */
   aspect-ratio: 16 / 9;
   background: #000;
+  line-height: 0;
 }
 
 .tour-video {
   width: 100%;
   height: 100%;
   display: block;
+  object-fit: contain;
 }
 
 .tour-footer {
-  padding: 12px 16px;
+  padding: 12px 20px;
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 12px;
-  min-height: 48px;
+  gap: 16px;
+  min-height: 52px;
 }
 
 .tour-hint {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
 }
 
@@ -147,35 +154,36 @@ function close() {
 }
 
 /* Mobile: full-width bottom sheet */
-@media (max-width: 520px) {
+@media (max-width: 768px) {
   .tour-overlay {
-    padding: 8px;
-    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding: 0;
     align-items: flex-end;
   }
 
   .tour-modal {
     max-width: 100%;
+    width: 100%;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   }
 
   .tour-close {
-    top: 6px;
-    right: 6px;
-    width: 36px;
-    height: 36px;
+    top: 10px;
+    right: 10px;
+    width: 38px;
+    height: 38px;
     font-size: 18px;
   }
 
   .tour-footer {
-    padding: 14px 16px;
-    padding-bottom: max(14px, env(safe-area-inset-bottom));
+    padding: 16px 20px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    gap: 20px;
   }
 
   .tour-footer .btn {
-    min-height: 44px;
-    font-size: 15px;
-    padding: 10px 20px;
+    min-height: 48px;
+    font-size: 16px;
+    padding: 12px 24px;
   }
 }
 

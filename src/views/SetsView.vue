@@ -314,7 +314,7 @@
       </div>
     </transition>
 
-    <SetsTourModal />
+    <TourModal src="/videos/sets-tour.mp4" storage-key="rarebox_sets_tour_seen" />
   </div>
 </template>
 
@@ -324,7 +324,7 @@ import { getSets, getCardsBySet, getMarketPrice, formatVariantLabel, getJapanese
 import { usePortfolioStore } from '../stores/portfolio'
 import PriceChart from '../components/PriceChart.vue'
 import AddItemModal from '../components/AddItemModal.vue'
-import SetsTourModal from '../components/SetsTourModal.vue'
+import TourModal from '../components/TourModal.vue'
 
 const store = usePortfolioStore()
 
