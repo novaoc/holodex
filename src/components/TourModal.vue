@@ -82,9 +82,7 @@ function close() {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  /* Let the video define the width, cap at viewport */
-  width: fit-content;
-  max-width: min(720px, calc(100vw - 48px));
+  width: min(720px, calc(100vw - 48px));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
