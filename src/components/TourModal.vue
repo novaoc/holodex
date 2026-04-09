@@ -155,17 +155,17 @@ function close() {
   to { transform: scale(1); opacity: 1; }
 }
 
-/* Mobile: full-width bottom sheet */
+/* Mobile: centered, not bottom sheet */
 @media (max-width: 768px) {
   .tour-overlay {
-    padding: 0;
-    align-items: flex-end;
+    padding: 12px;
+    align-items: center;
   }
 
   .tour-modal {
-    max-width: 100%;
     width: 100%;
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    max-width: 100%;
+    border-radius: var(--radius-lg);
   }
 
   .tour-close {
@@ -177,8 +177,7 @@ function close() {
   }
 
   .tour-footer {
-    padding: 16px 20px;
-    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding: 14px 20px;
     gap: 20px;
   }
 
