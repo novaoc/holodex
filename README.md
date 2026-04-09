@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/rarebox-intro.gif" alt="Rarebox — Pokémon TCG Portfolio Tracker" width="640">
+</p>
+
 # Rarebox
 
 Track your Pokemon TCG collection — cards, sealed products, and graded slabs — with live prices and portfolio charts.
