@@ -82,7 +82,7 @@ function close() {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  width: min(800px, calc(100vw - 48px));
+  width: min(960px, calc(100vw - 48px));
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
