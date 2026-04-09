@@ -155,7 +155,7 @@ function close() {
   to { transform: scale(1); opacity: 1; }
 }
 
-/* Mobile: centered, not bottom sheet */
+/* Mobile: centered, tall video area */
 @media (max-width: 768px) {
   .tour-overlay {
     padding: 12px;
@@ -166,6 +166,12 @@ function close() {
     width: 100%;
     max-width: 100%;
     border-radius: var(--radius-lg);
+  }
+
+  .tour-video-wrap {
+    /* Fill ~70% of viewport height minus padding */
+    padding-bottom: 0;
+    height: calc(70vh - 80px);
   }
 
   .tour-close {
