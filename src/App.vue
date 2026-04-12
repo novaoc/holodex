@@ -231,7 +231,16 @@ onMounted(async () => {
   transition: opacity 0.15s;
 }
 .sidebar-logo:hover { opacity: 0.8; }
-.logo-icon { font-size: 22px; color: var(--accent); }
+.logo-icon {
+  font-size: 22px;
+  color: var(--accent);
+  display: inline-block;
+  animation: logo-float 3s ease-in-out infinite;
+}
+@keyframes logo-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
 .logo-text { font-size: 18px; font-weight: 700; color: var(--text-primary); flex: 1; }
 .sidebar-close { display: none; }
 

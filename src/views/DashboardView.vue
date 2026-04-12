@@ -12,7 +12,7 @@
           <div class="hero-actions">
             <router-link to="/search" class="btn btn-primary btn-lg hero-cta">Get Started</router-link>
             <button class="btn btn-secondary btn-lg" @click="scrollToFeatures">See Features</button>
-            <a href="https://docs.rarebox.io" target="_blank" rel="noopener" class="btn btn-ghost btn-lg">📖 Docs</a>
+            <a href="https://docs.rarebox.io" target="_blank" rel="noopener" class="btn btn-secondary btn-lg">📖 Docs</a>
           </div>
           <div class="hero-badges">
             <span class="badge badge-accent">No Account</span>
