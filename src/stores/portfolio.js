@@ -27,12 +27,12 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   // ── Persistence ──────────────────────────────────────────────────────
 
   function getState() {
-    return {
+    return JSON.parse(JSON.stringify({
       portfolios: portfolios.value,
       activePortfolioId: activePortfolioId.value,
       settings: settings.value,
       snapshots: snapshots.value,
-    }
+    }))
   }
 
   function applyState(state) {
@@ -46,7 +46,11 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   function persist() {
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(async () => {
-      await saveState(getState())
+      try {
+        await saveState(getState())
+      } catch (e) {
+        console.error('IDB persist failed:', e)
+      }
     }, DEBOUNCE_MS)
   }
 
