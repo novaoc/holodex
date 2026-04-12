@@ -105,12 +105,21 @@ Built by [Nova](https://github.com/novaoc).
 - `sitemap.xml` with all public routes
 
 ### Data & Privacy
-- All data stored locally in your browser (localStorage)
+- All data stored locally in your browser (IndexedDB via Dexie.js)
 - No accounts, no server — everything runs client-side
+- Automatic migration from localStorage for existing users
+- Debounced writes with crash-safe flush (beforeunload)
 - Price data fetched directly from public APIs in the browser
 - Price alerts — set thresholds on cards, get browser notifications when prices cross them
+- Per-type price staleness tracking — cards (24h), sealed/graded (12h)
 - Terms & Conditions page with full Privacy Policy at [/terms](https://rarebox.io/terms)
 - Vercel Analytics and Speed Insights for anonymized usage metrics (page views, Core Web Vitals — no cookies, no cross-site tracking)
+
+### Feature Tour Videos
+- In-app tutorial videos for Browse Sets and Decks pages
+- Auto-play once on first visit
+- Replay anytime via ⓘ info icon next to the page title
+- Built with Manim Community Edition, rendered at 1080p60
 
 ## Performance
 
@@ -128,6 +137,7 @@ Built by [Nova](https://github.com/novaoc).
 
 - Vue 3 + Vite
 - Pinia (state management)
+- Dexie.js (IndexedDB persistence)
 - ApexCharts (price/portfolio charts)
 - Vue Router (navigation)
 - XLSX (Excel export)
@@ -136,6 +146,11 @@ Built by [Nova](https://github.com/novaoc).
 - PriceCharting JSON API (sealed + graded prices)
 - Pokellector CDN (Japanese set logos)
 - Vercel (hosting + analytics)
+
+## Releases
+
+- **[v1.0.1](https://github.com/novaoc/rarebox/releases/tag/v1.0.1)** — Critical fix: Vue reactive proxies couldn't be serialized to IndexedDB
+- **[v1.0.0](https://github.com/novaoc/rarebox/releases/tag/v1.0.0)** — First release. Full feature set: collections, decks, meta decks, pricing, charts, PWA, SEO, bulk import, backup/transfer, IndexedDB persistence
 
 ## Getting Started
 
