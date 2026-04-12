@@ -336,13 +336,13 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--bg-hover);
+  border: 1.5px solid var(--text-muted);
+  background: transparent;
   color: var(--text-muted);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 700;
   font-style: italic;
   cursor: pointer;
