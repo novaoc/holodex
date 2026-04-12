@@ -30,7 +30,7 @@
         <p>Rarebox is a Progressive Web App (PWA) that runs entirely in your browser:</p>
         <ul>
           <li><strong>Portfolio tracking</strong> — your portfolios, items, notes, and
-            daily price snapshots are stored in your browser's localStorage and never
+            daily price snapshots are stored in your browser's IndexedDB and never
             leave your device unless you export or sync them.</li>
           <li><strong>Card data</strong> — card names, images, and set information are
             fetched from the pokemontcg.io API. Japanese sets use the tcgdex API.</li>
@@ -100,10 +100,12 @@
         <h2>8. Local Storage &amp; Your Data</h2>
         <p>
           All portfolio data, deck data, settings, price snapshots, and preferences
-          are stored exclusively in your browser's localStorage. This data never leaves
+          are stored exclusively in your browser's IndexedDB. This data never leaves
           your device unless you explicitly export it or configure cross-device sync.
-          Clearing your browser data will permanently delete all your Rarebox data.
-          We cannot recover it.
+          IndexedDB is more resilient than localStorage and is not cleared by standard
+          page refreshes, but clearing your browser site data will permanently delete
+          all your Rarebox data. We cannot recover it. We recommend using the backup
+          export feature in Settings regularly.
         </p>
       </section>
 
@@ -216,7 +218,7 @@
 
       <section>
         <h2>3. Local Storage</h2>
-        <p>Rarebox uses your browser's localStorage to save:</p>
+        <p>Rarebox uses your browser's IndexedDB to save:</p>
         <ul>
           <li><strong>Portfolios</strong> — your card collections, quantities, purchase
             prices, notes, and daily price snapshots</li>
@@ -229,7 +231,8 @@
         </ul>
         <p>
           This data never leaves your browser. You can export or delete it at any time
-          from the Settings page.
+          from the Settings page. Existing users are automatically migrated from
+          localStorage to IndexedDB.
         </p>
       </section>
 
