@@ -198,7 +198,7 @@
               <span class="privacy-check">✓</span>
               <div>
                 <strong>Local Storage Only</strong>
-                <p>All data stays in your browser's localStorage. Nothing is sent to any server.</p>
+                <p>All data stays in your browser's IndexedDB (via Dexie.js). Crash-safe writes, auto-backup on every change. Nothing is sent to any server.</p>
               </div>
             </div>
             <div class="privacy-item">
@@ -219,7 +219,7 @@
               <span class="privacy-check">✓</span>
               <div>
                 <strong>Open Source</strong>
-                <p>MIT licensed. Inspect the code, fork it, run it yourself.<br><a href="https://github.com/novaoc/rarebox" target="_blank" rel="noopener">View on GitHub →</a></p>
+                <p>MIT licensed. Inspect the code, fork it, run it yourself.<br><a href="https://github.com/novaoc/rarebox" target="_blank" rel="noopener">GitHub</a> · <a href="https://docs.rarebox.io" target="_blank" rel="noopener">Documentation</a></p>
               </div>
             </div>
           </div>

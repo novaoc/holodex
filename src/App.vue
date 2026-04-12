@@ -72,6 +72,8 @@
         <div class="app-footer">
           <router-link to="/terms" class="app-footer-link">Terms &amp; Conditions</router-link>
           <span class="app-footer-dot">·</span>
+          <a href="https://docs.rarebox.io" target="_blank" rel="noopener" class="app-footer-link">Docs</a>
+          <span class="app-footer-dot">·</span>
           <a href="https://github.com/novaoc/rarebox" target="_blank" rel="noopener" class="app-footer-link">GitHub</a>
         </div>
       </main>
