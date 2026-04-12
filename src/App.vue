@@ -56,7 +56,7 @@
         </button>
         <div class="topbar-breadcrumb">
           {{ currentPageTitle }}
-          <button v-if="currentTour" class="tour-info-btn" @click="replayTour" title="Watch tour video">ⓘ</button>
+          <button v-if="currentTour" class="tour-info-btn" @click="replayTour" title="Watch tour video">i</button>
         </div>
         <router-link to="/search" class="btn btn-primary btn-sm">
           + Add Card
@@ -344,7 +344,6 @@ onMounted(() => {
   color: var(--text-muted);
   font-size: 13px;
   font-weight: 700;
-  font-style: italic;
   cursor: pointer;
   transition: all 0.15s;
   flex-shrink: 0;
