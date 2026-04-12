@@ -1,3 +1,8 @@
+<!--
+  Rarebox — Pokémon TCG Portfolio Tracker
+  Built by Nova — GitHub: @novaoc
+  https://rarebox.io
+-->
 <template>
   <div class="app-layout">
     <aside class="sidebar" :class="{ open: sidebarOpen }">

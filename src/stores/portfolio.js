@@ -1,3 +1,8 @@
+/**
+ * Rarebox — Pokémon TCG Portfolio Tracker
+ * Built by Nova — GitHub: @novaoc
+ * https://rarebox.io
+ */
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { loadState, saveState, isStale as _isStale, hasNeverPriced as _hasNeverPriced } from '../db'

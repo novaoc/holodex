@@ -1,3 +1,8 @@
+/**
+ * Rarebox — Pokémon TCG Portfolio Tracker
+ * Built by Nova — GitHub: @novaoc
+ * https://rarebox.io
+ */
 import Dexie from 'dexie'
 
 const db = new Dexie('Rarebox')
