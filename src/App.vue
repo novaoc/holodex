@@ -54,7 +54,10 @@
         <button class="btn btn-ghost btn-icon hamburger" @click="sidebarOpen = !sidebarOpen">
           ☰
         </button>
-        <div class="topbar-breadcrumb">{{ currentPageTitle }}</div>
+        <div class="topbar-breadcrumb">
+          {{ currentPageTitle }}
+          <button v-if="currentTour" class="tour-info-btn" @click="replayTour" title="Watch tour video">ⓘ</button>
+        </div>
         <router-link to="/search" class="btn btn-primary btn-sm">
           + Add Card
         </router-link>
@@ -110,6 +113,10 @@
     </transition>
 
     <InstallPrompt />
+
+    <!-- Tour videos (replayable via info icon) -->
+    <TourModal v-if="showSetsTour" :key="tourKey" src="/videos/sets-tour.mp4" storage-key="rarebox_sets_tour_seen" />
+    <TourModal v-if="showDecksTour" :key="tourKey" src="/videos/decks-tour.mp4" storage-key="rarebox_deck_tour_seen" />
   </div>
 </template>
 
@@ -118,6 +125,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePortfolioStore } from './stores/portfolio'
 import InstallPrompt from './components/InstallPrompt.vue'
+import TourModal from './components/TourModal.vue'
 
 const store = usePortfolioStore()
 const route = useRoute()
@@ -127,6 +135,25 @@ const sidebarOpen = ref(false)
 const showNewPortfolioModal = ref(false)
 const newPortfolioName = ref('')
 const newPortfolioColor = ref('#f5a623')
+const showSetsTour = ref(false)
+const showDecksTour = ref(false)
+const tourKey = ref(0)
+
+// Pages that have tour videos
+const tourPages = {
+  Sets:  { storageKey: 'rarebox_sets_tour_seen',  showRef: showSetsTour },
+  Decks: { storageKey: 'rarebox_deck_tour_seen',  showRef: showDecksTour },
+}
+
+const currentTour = computed(() => tourPages[route.name] || null)
+
+function replayTour() {
+  const tour = currentTour.value
+  if (!tour) return
+  localStorage.removeItem(tour.storageKey)
+  tourKey.value++
+  tour.showRef.value = true
+}
 
 const portfolioColors = [
   '#f5a623', '#58a6ff', '#3fb950', '#f85149',
@@ -300,6 +327,34 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tour-info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  font-style: italic;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.tour-info-btn:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .hamburger { display: none; }
 

@@ -91,7 +91,6 @@
       </div>
     </transition>
 
-    <TourModal src="/videos/decks-tour.mp4" storage-key="rarebox_deck_tour_seen" />
   </div>
 </template>
 
@@ -99,7 +98,6 @@
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useDeckStore } from '../stores/decks'
-import TourModal from '../components/TourModal.vue'
 
 const deckStore = useDeckStore()
 const router = useRouter()
