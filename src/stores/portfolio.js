@@ -1,41 +1,19 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { loadState, saveState, isStale as _isStale, hasNeverPriced as _hasNeverPriced } from '../db'
 
-const STORAGE_KEY = 'rarebox_portfolios'
-const SETTINGS_KEY = 'rarebox_settings'
-const SNAPSHOTS_KEY = 'rarebox_snapshots'
+// Legacy localStorage keys (for migration)
+const LEGACY_PORTFOLIOS_KEY = 'rarebox_portfolios'
+const LEGACY_SETTINGS_KEY = 'rarebox_settings'
+const LEGACY_SNAPSHOTS_KEY = 'rarebox_snapshots'
+
 const MAX_SNAPSHOTS = 1095 // 3 years of daily snapshots
+const DEBOUNCE_MS = 3000
+
+let debounceTimer = null
 
 function generateId() {
   return crypto.randomUUID()
-}
-
-function loadFromStorage() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
-function saveToStorage(portfolios) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(portfolios))
-  } catch (e) {
-    console.error('Failed to save portfolios:', e)
-  }
-}
-
-function loadSnapshots() {
-  try {
-    const raw = localStorage.getItem(SNAPSHOTS_KEY)
-    return raw ? JSON.parse(raw) : {}
-  } catch { return {} }
-}
-
-function saveSnapshots(data) {
-  try { localStorage.setItem(SNAPSHOTS_KEY, JSON.stringify(data)) } catch {}
 }
 
 export const usePortfolioStore = defineStore('portfolio', () => {
@@ -43,41 +21,120 @@ export const usePortfolioStore = defineStore('portfolio', () => {
   const portfolios = ref([])
   const activePortfolioId = ref(null)
   const settings = ref({ currency: 'USD', defaultPortfolioId: null })
-  const snapshots = ref(loadSnapshots()) // { [portfolioId]: [{date, ts, values: {itemId: price}}] }
+  const snapshots = ref({})
+  const initialized = ref(false)
 
-  // Init — load from localStorage
-  function init() {
-    const saved = loadFromStorage()
-    if (saved && saved.portfolios) {
-      portfolios.value = saved.portfolios
-      activePortfolioId.value = saved.activePortfolioId || (saved.portfolios[0]?.id ?? null)
+  // ── Persistence ──────────────────────────────────────────────────────
+
+  function getState() {
+    return {
+      portfolios: portfolios.value,
+      activePortfolioId: activePortfolioId.value,
+      settings: settings.value,
+      snapshots: snapshots.value,
+    }
+  }
+
+  function applyState(state) {
+    if (state.portfolios) portfolios.value = state.portfolios
+    if (state.activePortfolioId) activePortfolioId.value = state.activePortfolioId
+    if (state.settings) settings.value = { ...settings.value, ...state.settings }
+    if (state.snapshots) snapshots.value = state.snapshots
+  }
+
+  // Debounced save to IDB
+  function persist() {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(async () => {
+      await saveState(getState())
+    }, DEBOUNCE_MS)
+  }
+
+  // Immediate save (for beforeunload, reset, critical paths)
+  async function persistNow() {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
+    await saveState(getState())
+  }
+
+  // ── Init (async — loads from IDB, migrates from localStorage) ────────
+
+  async function init() {
+    // 1. Try IDB first
+    const idbState = await loadState()
+
+    if (idbState && idbState.portfolios) {
+      // IDB has data — use it
+      applyState(idbState)
+      // Clean up legacy localStorage if it still exists (migration leftover)
+      try { localStorage.removeItem(LEGACY_PORTFOLIOS_KEY) } catch {}
+      try { localStorage.removeItem(LEGACY_SETTINGS_KEY) } catch {}
+      try { localStorage.removeItem(LEGACY_SNAPSHOTS_KEY) } catch {}
     } else {
-      // Create default portfolio
-      const defaultPortfolio = {
-        id: generateId(),
-        name: 'My Collection',
-        color: '#f5a623',
-        createdAt: new Date().toISOString(),
-        items: []
+      // 2. IDB empty — try migrating from localStorage
+      const migrated = migrateFromLocalStorage()
+      if (migrated) {
+        await persistNow()
+        // Clear legacy keys after successful migration
+        try { localStorage.removeItem(LEGACY_PORTFOLIOS_KEY) } catch {}
+        try { localStorage.removeItem(LEGACY_SETTINGS_KEY) } catch {}
+        try { localStorage.removeItem(LEGACY_SNAPSHOTS_KEY) } catch {}
+      } else {
+        // 3. Fresh start — create default portfolio
+        const defaultPortfolio = {
+          id: generateId(),
+          name: 'My Collection',
+          color: '#f5a623',
+          createdAt: new Date().toISOString(),
+          items: []
+        }
+        portfolios.value = [defaultPortfolio]
+        activePortfolioId.value = defaultPortfolio.id
+        await persistNow()
       }
-      portfolios.value = [defaultPortfolio]
-      activePortfolioId.value = defaultPortfolio.id
     }
 
-    try {
-      const savedSettings = localStorage.getItem(SETTINGS_KEY)
-      if (savedSettings) settings.value = { ...settings.value, ...JSON.parse(savedSettings) }
-    } catch {}
+    // Safety: register beforeunload flush
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        persistNow()
+      })
+    }
 
-    persist()
+    initialized.value = true
     cleanupSnapshots()
   }
 
-  function persist() {
-    saveToStorage({ portfolios: portfolios.value, activePortfolioId: activePortfolioId.value })
+  function migrateFromLocalStorage() {
+    try {
+      const raw = localStorage.getItem(LEGACY_PORTFOLIOS_KEY)
+      if (!raw) return false
+      const saved = JSON.parse(raw)
+      if (!saved.portfolios || saved.portfolios.length === 0) return false
+
+      portfolios.value = saved.portfolios
+      activePortfolioId.value = saved.activePortfolioId || (saved.portfolios[0]?.id ?? null)
+
+      try {
+        const savedSettings = localStorage.getItem(LEGACY_SETTINGS_KEY)
+        if (savedSettings) settings.value = { ...settings.value, ...JSON.parse(savedSettings) }
+      } catch {}
+
+      try {
+        const rawSnapshots = localStorage.getItem(LEGACY_SNAPSHOTS_KEY)
+        if (rawSnapshots) snapshots.value = JSON.parse(rawSnapshots)
+      } catch {}
+
+      return true
+    } catch {
+      return false
+    }
   }
 
-  // Getters
+  // ── Getters ──────────────────────────────────────────────────────────
+
   const activePortfolio = computed(() =>
     portfolios.value.find(p => p.id === activePortfolioId.value) || portfolios.value[0]
   )
@@ -102,7 +159,8 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     }, 0)
   })
 
-  // Portfolio CRUD
+  // ── Portfolio CRUD ───────────────────────────────────────────────────
+
   function createPortfolio(name, color = '#58a6ff') {
     const portfolio = {
       id: generateId(),
@@ -137,11 +195,17 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     persist()
   }
 
-  // Item CRUD
+  // ── Item CRUD ────────────────────────────────────────────────────────
+
   function addItem(portfolioId, item) {
     const portfolio = portfolios.value.find(p => p.id === portfolioId)
     if (!portfolio) return null
-    const newItem = { ...item, id: generateId(), addedAt: new Date().toISOString(), lastPriceUpdate: new Date().toISOString() }
+    const newItem = {
+      ...item,
+      id: generateId(),
+      addedAt: new Date().toISOString(),
+      lastPriceUpdate: new Date().toISOString()
+    }
     portfolio.items.push(newItem)
     persist()
     return newItem
@@ -164,12 +228,16 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     cleanupSnapshots()
   }
 
-  // Update market prices for all card items (call on load / refresh)
+  // Update market prices for items (cards + sealed/graded)
   function updateCardPrice(portfolioId, itemId, price) {
-    updateItem(portfolioId, itemId, { currentMarketPrice: price })
+    updateItem(portfolioId, itemId, {
+      currentMarketPrice: price,
+      lastPriceUpdate: new Date().toISOString()
+    })
   }
 
-  // Check if a card is Japanese (uses tcgdex API, no bulk endpoint)
+  // ── Helpers ──────────────────────────────────────────────────────────
+
   function isJPCard(item) {
     if (item.type !== 'card') return false
     if (item._lang === 'ja') return true
@@ -177,14 +245,17 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     return false
   }
 
-  // Check if a card's price is stale (older than 6 hours)
+  // Staleness check (per-type thresholds from db.js)
   function isPriceStale(item) {
-    if (!item.lastPriceUpdate) return true
-    const age = Date.now() - new Date(item.lastPriceUpdate).getTime()
-    return age > 6 * 60 * 60 * 1000 // 6 hours
+    return _isStale(item)
   }
 
-  // Portfolio stats
+  function hasNeverPriced(item) {
+    return _hasNeverPriced(item)
+  }
+
+  // ── Portfolio stats ──────────────────────────────────────────────────
+
   function getPortfolioStats(portfolioId) {
     const portfolio = portfolios.value.find(p => p.id === portfolioId)
     if (!portfolio) return null
@@ -210,14 +281,13 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     return { totalCost, totalValue, gain, gainPct, itemCount: items.length, topGainer }
   }
 
-  // ── Snapshot system ──────────────────────────────────────────────────────
-  // Records a daily price snapshot for all items in a portfolio.
-  // Call this after refreshPrices() completes.
+  // ── Snapshot system ──────────────────────────────────────────────────
+
   function recordSnapshot(portfolioId) {
     const portfolio = portfolios.value.find(p => p.id === portfolioId)
     if (!portfolio) return
 
-    const today = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+    const today = new Date().toISOString().split('T')[0]
     const ts = Date.now()
 
     const values = {}
@@ -231,7 +301,6 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     if (Object.keys(values).length === 0) return
 
     const list = snapshots.value[portfolioId] || []
-    // Replace today's snapshot if it exists, else append
     const todayIdx = list.findIndex(s => s.date === today)
     if (todayIdx >= 0) {
       list[todayIdx] = { date: today, ts, values }
@@ -239,26 +308,22 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       list.push({ date: today, ts, values })
     }
 
-    // Trim to max
     if (list.length > MAX_SNAPSHOTS) list.splice(0, list.length - MAX_SNAPSHOTS)
     snapshots.value[portfolioId] = list
-    saveSnapshots(snapshots.value)
+    persist()
   }
 
-  // Auto-record snapshot once per day for all portfolios (no API calls, uses cached prices)
   function autoSnapshot() {
     const today = new Date().toISOString().split('T')[0]
     for (const portfolio of portfolios.value) {
       if (portfolio.items.length === 0) continue
       const list = snapshots.value[portfolio.id] || []
       const lastSnap = list[list.length - 1]
-      if (lastSnap?.date === today) continue // already recorded today
+      if (lastSnap?.date === today) continue
       recordSnapshot(portfolio.id)
     }
   }
 
-  // Returns [{x: timestamp, y: price}] for a specific item across all snapshots.
-  // Prepends the purchase-date point as the synthetic origin.
   function getItemHistory(portfolioId, itemId) {
     const portfolio = portfolios.value.find(p => p.id === portfolioId)
     const item = portfolio?.items.find(i => i.id === itemId)
@@ -267,17 +332,14 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     const list = snapshots.value[portfolioId] || []
     const points = []
 
-    // Synthetic origin: purchase date → purchase price
     if (item.purchaseDate && item.purchasePrice > 0) {
       const purchaseTs = new Date(item.purchaseDate).getTime()
-      // Only add if before first snapshot
       const firstSnap = list[0]
       if (!firstSnap || purchaseTs < firstSnap.ts) {
         points.push({ x: purchaseTs, y: item.purchasePrice })
       }
     }
 
-    // Snapshot points
     for (const snap of list) {
       if (snap.values[itemId] != null) {
         points.push({ x: snap.ts, y: snap.values[itemId] })
@@ -287,16 +349,19 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     return points
   }
 
-  // Reset everything
-  function resetAll() {
+  // ── Reset ────────────────────────────────────────────────────────────
+
+  async function resetAll() {
     portfolios.value = []
     activePortfolioId.value = null
     snapshots.value = {}
-    localStorage.clear()
-    init()
+    settings.value = { currency: 'USD', defaultPortfolioId: null }
+    // Clear both IDB and any leftover localStorage
+    await saveState(null)
+    try { localStorage.clear() } catch {}
+    await init()
   }
 
-  // Clean up stale snapshots — removes entries for items that no longer exist
   function cleanupSnapshots() {
     const validItemIds = new Set()
     for (const p of portfolios.value) {
@@ -315,7 +380,6 @@ export const usePortfolioStore = defineStore('portfolio', () => {
           }
         }
       }
-      // Remove snapshots with no values left
       const nonEmpty = list.filter(s => Object.keys(s.values).length > 0)
       if (nonEmpty.length !== list.length) {
         snapshots.value[portfolioId] = nonEmpty
@@ -323,7 +387,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
       }
     }
 
-    if (changed) saveSnapshots(snapshots.value)
+    if (changed) persist()
   }
 
   return {
@@ -332,10 +396,12 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     activePortfolio,
     settings,
     snapshots,
+    initialized,
     totalPortfolioValue,
     totalCostBasis,
     init,
     persist,
+    persistNow,
     createPortfolio,
     updatePortfolio,
     deletePortfolio,
@@ -349,6 +415,7 @@ export const usePortfolioStore = defineStore('portfolio', () => {
     getItemHistory,
     isJPCard,
     isPriceStale,
+    hasNeverPriced,
     resetAll,
     cleanupSnapshots,
     autoSnapshot,

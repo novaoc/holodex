@@ -267,8 +267,8 @@ function clearPriceCache() {
   keys.forEach(k => localStorage.removeItem(k))
 }
 
-function doReset() {
-  store.resetAll()
+async function doReset() {
+  await store.resetAll()
   confirmReset.value = false
   resetConfirmText.value = ''
   router.push('/')

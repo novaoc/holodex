@@ -1,0 +1,48 @@
+import Dexie from 'dexie'
+
+const db = new Dexie('Rarebox')
+db.version(1).stores({
+  state: 'key'
+})
+
+// ── Persistence layer ──────────────────────────────────────────────────
+// Single blob approach: entire app state stored as one JSON row.
+
+export async function loadState() {
+  try {
+    const row = await db.state.get('app_state')
+    return row?.value || null
+  } catch (e) {
+    console.error('IDB load failed:', e)
+    return null
+  }
+}
+
+export async function saveState(state) {
+  try {
+    await db.state.put({ key: 'app_state', value: state })
+    return true
+  } catch (e) {
+    console.error('IDB save failed:', e)
+    return false
+  }
+}
+
+// ── Staleness helpers ──────────────────────────────────────────────────
+
+const STALE_THRESHOLDS = {
+  card: 24 * 60 * 60 * 1000,    // 24h — cards move slowly
+  sealed: 12 * 60 * 60 * 1000,   // 12h — hype cycles on new releases
+  graded: 12 * 60 * 60 * 1000,   // 12h — same as sealed
+}
+
+export function isStale(item) {
+  if (!item.lastPriceUpdate) return true
+  const age = Date.now() - new Date(item.lastPriceUpdate).getTime()
+  const threshold = STALE_THRESHOLDS[item.type] || STALE_THRESHOLDS.card
+  return age > threshold
+}
+
+export function hasNeverPriced(item) {
+  return !item.lastPriceUpdate && !(item.currentMarketPrice || item.currentValue)
+}

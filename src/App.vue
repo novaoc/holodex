@@ -185,8 +185,8 @@ function createPortfolio() {
   router.push(`/portfolio/${p.id}`)
 }
 
-onMounted(() => {
-  store.init()
+onMounted(async () => {
+  await store.init()
   store.autoSnapshot() // record daily price snapshot for chart history
 })
 </script>
